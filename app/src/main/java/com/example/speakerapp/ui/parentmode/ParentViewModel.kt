@@ -5,7 +5,6 @@ import android.content.Context
 import android.media.MediaPlayer
 import android.util.Log
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
@@ -15,6 +14,7 @@ import com.example.speakerapp.network.Constants
 import com.example.speakerapp.network.RetrofitInstance
 import com.example.speakerapp.network.ServerAlert
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -25,68 +25,81 @@ import java.io.File
 
 class ParentViewModel(application: Application) : AndroidViewModel(application) {
 
-    val alerts = mutableStateListOf<Alert>()
-    val familiarList = mutableStateListOf<String>()
-    var connectionStatus by mutableStateOf("Unknown")
+    var alerts by mutableStateOf<List<Alert>>(emptyList())
+    var familiarList by mutableStateOf<List<String>>(emptyList())
+    var connectionStatus by mutableStateOf("Not Tested")
+
+    private var lastAlertTimestamp: Long = 0
+    private var pollingJob: Job? = null
 
     private var mediaPlayer: MediaPlayer? = null
     private val api = RetrofitInstance.api
 
     init {
-        // Start polling for alerts and refreshing the familiar list.
-        viewModelScope.launch {
+        startPollingForAlerts()
+        refreshFamiliarList()
+    }
+
+    private fun startPollingForAlerts() {
+        pollingJob?.cancel() // Cancel any existing job
+        pollingJob = viewModelScope.launch(Dispatchers.IO) {
             while (isActive) {
-                fetchAlertsFromServer()
-                refreshFamiliarList()
+                try {
+                    val newAlerts = api.getAlerts(since = lastAlertTimestamp)
+                    if (newAlerts.isSuccessful) {
+                        newAlerts.body()?.let { serverAlerts ->
+                            if (serverAlerts.isNotEmpty()) {
+                                // Update the timestamp to the latest one received
+                                lastAlertTimestamp = serverAlerts.maxOfOrNull { it.timestamp } ?: lastAlertTimestamp
+
+                                val downloadedAlerts = downloadAlertAudios(serverAlerts)
+
+                                // Add new alerts to the existing list, avoiding duplicates
+                                val currentAlerts = alerts.toMutableList()
+                                downloadedAlerts.forEach { newAlert ->
+                                    if (currentAlerts.none { it.timestamp == newAlert.timestamp }) {
+                                        currentAlerts.add(newAlert)
+                                    }
+                                }
+
+                                // Sort by timestamp descending to show newest first
+                                withContext(Dispatchers.Main) {
+                                    alerts = currentAlerts.sortedByDescending { it.timestamp }
+                                }
+                            }
+                        }
+                    }
+
+                } catch (e: Exception) {
+                    Log.e("ParentViewModel", "Failed to fetch alerts: ${e.message}")
+                    // Handle error, maybe update connection status
+                }
                 delay(5000) // Poll every 5 seconds
             }
         }
     }
 
-    fun fetchAlertsFromServer() {
-        viewModelScope.launch {
-            try {
-                val response = api.getAlerts()
-                if (response.isSuccessful) {
-                    response.body()?.let { serverAlerts ->
-                        addServerAlerts(serverAlerts)
-                    }
-                } else {
-                    Log.e("ParentViewModel", "Failed to fetch alerts. Code: ${response.code()}")
-                }
-            } catch (e: Exception) {
-                Log.e("ParentViewModel", "Exception when fetching alerts: ${e.message}", e)
-            }
-        }
-    }
-
-    private suspend fun addServerAlerts(serverAlerts: List<ServerAlert>) {
+    private suspend fun downloadAlertAudios(serverAlerts: List<ServerAlert>): List<Alert> {
         val context = getApplication<Application>().applicationContext
+        val downloadedAlerts = mutableListOf<Alert>()
+
         withContext(Dispatchers.IO) {
             serverAlerts.forEach { serverAlert ->
-                val timestampAsLong = serverAlert.timestamp.toLongOrNull()
-
-                if (timestampAsLong == null) {
-                    Log.e("ParentViewModel", "Received invalid timestamp from server: ${serverAlert.timestamp}")
-                    return@forEach
-                }
-
-                if (alerts.none { it.timestamp == timestampAsLong }) {
-                    val audioFile = downloadAudio(context, serverAlert.audio_url)
-                    if (audioFile != null) {
-                        val newAlert = Alert(
-                            timestamp = timestampAsLong,
+                val audioFile = downloadAudio(context, serverAlert.audio_url)
+                if (audioFile != null) {
+                    downloadedAlerts.add(
+                        Alert(
+                            timestamp = serverAlert.timestamp,
                             location = serverAlert.location,
                             audio = audioFile
                         )
-                        withContext(Dispatchers.Main) {
-                            alerts.add(0, newAlert)
-                        }
-                    }
+                    )
                 }
             }
         }
+        return downloadedAlerts
     }
+
 
     private fun downloadAudio(context: Context, urlPath: String): File? {
         return try {
@@ -116,6 +129,7 @@ class ParentViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun removeAlert(alert: Alert) {
+        alerts = alerts.filterNot { it.timestamp == alert.timestamp }
         try {
             if (alert.audio.exists()) {
                 alert.audio.delete()
@@ -123,7 +137,6 @@ class ParentViewModel(application: Application) : AndroidViewModel(application) 
         } catch(e: Exception) {
             Log.e("ParentViewModel", "Error deleting audio file for alert.", e)
         }
-        alerts.remove(alert)
     }
 
     fun testConnection() {
@@ -142,8 +155,9 @@ class ParentViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 val response = api.listSpeakers()
                 if (response.isSuccessful && response.body() != null) {
-                    familiarList.clear()
-                    familiarList.addAll(response.body()!!.speakers)
+                     withContext(Dispatchers.Main) {
+                        familiarList = response.body()!!.speakers
+                    }
                 }
             } catch (e: Exception) {
                  Log.e("ParentViewModel", "Failed to refresh familiar list.", e)
@@ -156,7 +170,7 @@ class ParentViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 val response = api.deleteSpeaker(name)
                 if (response.isSuccessful) {
-                    familiarList.remove(name)
+                    refreshFamiliarList()
                 }
             } catch (e: Exception) {
                 Log.e("ParentViewModel", "Failed to delete speaker.", e)
@@ -179,6 +193,8 @@ class ParentViewModel(application: Application) : AndroidViewModel(application) 
 
     override fun onCleared() {
         super.onCleared()
+        pollingJob?.cancel() // Ensure the coroutine is cancelled when ViewModel is destroyed
         mediaPlayer?.release()
+        Log.d("ParentViewModel", "Polling stopped.")
     }
 }

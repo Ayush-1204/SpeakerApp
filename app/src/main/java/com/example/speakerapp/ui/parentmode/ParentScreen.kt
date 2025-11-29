@@ -3,7 +3,6 @@ package com.example.speakerapp.ui.parentmode
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.example.speakerapp.models.Alert
 import com.example.speakerapp.network.Constants
 import com.example.speakerapp.ui.getDeviceID
+import com.example.speakerapp.ui.releaseModeLock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -35,7 +35,6 @@ import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -271,13 +270,17 @@ fun AlertCard(
 
                 val isLink = alert.location.startsWith("http")
                 Text(
-                    text = if (isLink) "View on Map" else "${alert.location}",
+                    text = if (isLink) "View on Map" else alert.location,
                     style = MaterialTheme.typography.bodySmall,
                     color = if (isLink) MaterialTheme.colorScheme.primary else Color.Unspecified,
                     textDecoration = if (isLink) TextDecoration.Underline else TextDecoration.None,
-                    modifier = Modifier.clickable(enabled = isLink) {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(alert.location))
-                        context.startActivity(intent)
+                    modifier = if (isLink) {
+                        Modifier.clickable { 
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(alert.location))
+                            context.startActivity(intent)
+                        }
+                    } else {
+                        Modifier
                     }
                 )
 
@@ -321,56 +324,3 @@ suspend fun enrollVoiceBackend(file: File, speakerName: String): Boolean =
             false
         }
     }
-
-suspend fun clearTempAudioBackend(): Boolean =
-    withContext(Dispatchers.IO) {
-        try {
-            val client = OkHttpClient()
-            val requestBody = ByteArray(0).toRequestBody(null, 0, 0)
-            val request = Request.Builder()
-                .url("${Constants.BASE_URL}clear_temp_audio")
-                .post(requestBody)
-                .build()
-
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    Log.e("ParentScreen", "Failed to clear temp audio. Response: ${response.body?.string()}")
-                }
-                response.isSuccessful
-            }
-        } catch (e: Exception) {
-            Log.e("ParentScreen", "Exception when clearing temp audio: ${e.message}")
-            false
-        }
-    }
-
-suspend fun releaseModeLock(deviceId: String): Boolean =
-    withContext(Dispatchers.IO) {
-        try {
-            val client = OkHttpClient()
-            val requestBody = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("device_id", deviceId)
-                .build()
-
-            val request = Request.Builder()
-                .url("${Constants.BASE_URL}release_mode")
-                .post(requestBody)
-                .build()
-
-            client.newCall(request).execute().use { it.isSuccessful }
-        } catch (e: Exception) {
-            Log.e("ParentScreen", "Exception releasing mode lock: ${e.message}")
-            false
-        }
-    }
-
-fun getDeviceID(context: android.content.Context): String {
-    val sharedPrefs = context.getSharedPreferences("AppPrefs", android.content.Context.MODE_PRIVATE)
-    var deviceId = sharedPrefs.getString("DEVICE_ID", null)
-    if (deviceId == null) {
-        deviceId = UUID.randomUUID().toString()
-        sharedPrefs.edit().putString("DEVICE_ID", deviceId).apply()
-    }
-    return deviceId
-}

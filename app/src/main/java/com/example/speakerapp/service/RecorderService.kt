@@ -1,5 +1,6 @@
 package com.example.speakerapp.service
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
@@ -8,23 +9,30 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.location.Location
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import com.example.speakerapp.MainActivity
 import com.example.speakerapp.core.AlertBus
 import com.example.speakerapp.core.StrangerDetectedEvent
 import com.example.speakerapp.network.Constants.BASE_URL
+import com.google.android.gms.location.LocationServices
+import com.google.gson.Gson
 import kotlinx.coroutines.*
+import kotlinx.coroutines.tasks.await
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.*
 
@@ -34,8 +42,15 @@ class RecorderService : Service() {
     private var isRunning = false
     private var alertRaised = false
     private val client = OkHttpClient()
+    private lateinit var fusedLocationClient: com.google.android.gms.location.FusedLocationProviderClient
+    private var locationJob: Job? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
@@ -64,16 +79,52 @@ class RecorderService : Service() {
         }
 
         serviceScope.launch { recordingLoop() }
+        locationJob = serviceScope.launch { locationUpdateLoop() }
     }
 
     private fun stopRecording() {
         isRunning = false
+        locationJob?.cancel()
         stopSelf()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         serviceScope.cancel()
+    }
+
+    private suspend fun locationUpdateLoop() {
+        while (isRunning) {
+            val location = getCurrentLocation()
+            if (location != null) {
+                sendLocationToBackend(location)
+            }
+            delay(10000) // Send location every 10 seconds
+        }
+    }
+
+    private suspend fun sendLocationToBackend(location: Location) {
+        withContext(Dispatchers.IO) {
+            try {
+                val locationData = mapOf("latitude" to location.latitude, "longitude" to location.longitude)
+                val jsonBody = Gson().toJson(locationData)
+
+                val request = Request.Builder()
+                    .url("${BASE_URL}update_location")
+                    .post(jsonBody.toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull()))
+                    .build()
+
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        Log.d("RecorderService", "Successfully updated location to server.")
+                    } else {
+                        Log.e("RecorderService", "Failed to update location. Code: ${response.code}")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("RecorderService", "Exception sending location: ${e.message}")
+            }
+        }
     }
 
     private suspend fun recordingLoop() {
@@ -187,19 +238,26 @@ class RecorderService : Service() {
             alertRaised = true
             isRunning = false
 
-            startService(Intent(this, RecorderService::class.java).apply { action = "STOP" })
+            // The backend now creates the alert, so we don't need to call sendAlertToServer here.
 
-            serviceScope.launch {
-                val finalFile = File(filesDir, "alert_${System.currentTimeMillis()}.wav")
-                chunkWav.copyTo(finalFile, overwrite = true)
-
-                AlertBus.postStrangerEvent(
-                    StrangerDetectedEvent(audio = finalFile)
-                )
-            }
+            // Also post the event locally for the child device's UI
+            val finalFile = File(filesDir, "alert_${System.currentTimeMillis()}.wav")
+            chunkWav.copyTo(finalFile, overwrite = true)
+            AlertBus.postStrangerEvent(StrangerDetectedEvent(audio = finalFile))
 
             sendAlertNotification("🚨 Stranger detected!")
+            stopSelf()
         }
+    }
+
+    @SuppressLint("MissingPermission")
+    private suspend fun getCurrentLocation(): Location? {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.e("RecorderService", "Location permission not granted for service.")
+            return null
+        }
+        return fusedLocationClient.lastLocation.await()
     }
 
     private fun createBaseNotification(): Notification {

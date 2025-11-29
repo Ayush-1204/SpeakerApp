@@ -188,13 +188,3 @@ suspend fun requestChildModeLock(deviceId: String): Boolean = withContext(Dispat
         false
     }
 }
-
-fun getDeviceID(context: android.content.Context): String {
-    val sharedPrefs = context.getSharedPreferences("AppPrefs", android.content.Context.MODE_PRIVATE)
-    var deviceId = sharedPrefs.getString("DEVICE_ID", null)
-    if (deviceId == null) {
-        deviceId = UUID.randomUUID().toString()
-        sharedPrefs.edit().putString("DEVICE_ID", deviceId).apply()
-    }
-    return deviceId
-}

@@ -20,15 +20,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.example.speakerapp.network.Constants
 import com.example.speakerapp.service.RecorderService
 import com.example.speakerapp.ui.getDeviceID
-import kotlinx.coroutines.Dispatchers
+import com.example.speakerapp.ui.releaseModeLock
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.MultipartBody
-import okhttp3.OkHttpClient
-import okhttp3.Request
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -152,24 +147,3 @@ fun ChildScreen(navController: NavHostController) {
         }
     }
 }
-
-suspend fun releaseModeLock(deviceId: String): Boolean =
-    withContext(Dispatchers.IO) {
-        try {
-            val client = OkHttpClient()
-            val requestBody = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("device_id", deviceId)
-                .build()
-
-            val request = Request.Builder()
-                .url("${Constants.BASE_URL}release_mode")
-                .post(requestBody)
-                .build()
-
-            client.newCall(request).execute().use { it.isSuccessful }
-        } catch (e: Exception) {
-            Log.e("ChildScreen", "Exception releasing mode lock: ${e.message}")
-            false
-        }
-    }

@@ -7,7 +7,7 @@ import retrofit2.Response
 
 // Data class to match the server's JSON response for alerts
 data class ServerAlert(
-    val timestamp: String, // Corrected to String to match server response parsing
+    val timestamp: Long, // Corrected to Long to match server response parsing
     val location: String, // This is a URL
     val audio_url: String // This is a relative URL path
 )
@@ -35,7 +35,7 @@ data class LocationData(
 interface ApiService {
 
     @GET("/get_alerts")
-    suspend fun getAlerts(): Response<List<ServerAlert>>
+    suspend fun getAlerts(@Query("since") since: Long): Response<List<ServerAlert>>
 
     @POST("/update_location")
     suspend fun updateLocation(@Body location: LocationData): Response<Unit>
