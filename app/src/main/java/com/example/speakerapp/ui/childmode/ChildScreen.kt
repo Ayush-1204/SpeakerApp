@@ -2,12 +2,14 @@ package com.example.speakerapp.ui.childmode
 
 import android.Manifest
 import android.content.Intent
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,7 +20,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.example.speakerapp.network.Constants
 import com.example.speakerapp.service.RecorderService
+import com.example.speakerapp.ui.getDeviceID
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,6 +37,24 @@ fun ChildScreen(navController: NavHostController) {
     val context = LocalContext.current
     var statusText by remember { mutableStateOf("Not Recording") }
     var isRecording by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    DisposableEffect(Unit) {
+        onDispose {
+            scope.launch {
+                val deviceId = getDeviceID(context)
+                if (releaseModeLock(deviceId)) {
+                    Log.d("ChildScreen", "Successfully released child mode lock.")
+                } else {
+                    Log.e("ChildScreen", "Failed to release child mode lock.")
+                }
+
+                // Stop the recording service when leaving the screen
+                val intent = Intent(context, RecorderService::class.java).apply { action = "STOP" }
+                context.startService(intent)
+            }
+        }
+    }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -57,6 +85,17 @@ fun ChildScreen(navController: NavHostController) {
         topBar = {
             TopAppBar(
                 title = { Text("Child Mode") },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        scope.launch {
+                            val deviceId = getDeviceID(context)
+                            releaseModeLock(deviceId)
+                            navController.popBackStack()
+                        }
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
@@ -113,3 +152,24 @@ fun ChildScreen(navController: NavHostController) {
         }
     }
 }
+
+suspend fun releaseModeLock(deviceId: String): Boolean =
+    withContext(Dispatchers.IO) {
+        try {
+            val client = OkHttpClient()
+            val requestBody = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("device_id", deviceId)
+                .build()
+
+            val request = Request.Builder()
+                .url("${Constants.BASE_URL}release_mode")
+                .post(requestBody)
+                .build()
+
+            client.newCall(request).execute().use { it.isSuccessful }
+        } catch (e: Exception) {
+            Log.e("ChildScreen", "Exception releasing mode lock: ${e.message}")
+            false
+        }
+    }

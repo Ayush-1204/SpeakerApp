@@ -17,9 +17,8 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.speakerapp.MainActivity
 import com.example.speakerapp.core.AlertBus
-import com.example.speakerapp.models.Alert
+import com.example.speakerapp.core.StrangerDetectedEvent
 import com.example.speakerapp.network.Constants.BASE_URL
-import com.example.speakerapp.utils.LocationHelper
 import kotlinx.coroutines.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -77,9 +76,6 @@ class RecorderService : Service() {
         serviceScope.cancel()
     }
 
-    /************************************************************
-     * RECORDING LOOP (Runs until stranger is detected)
-     ************************************************************/
     private suspend fun recordingLoop() {
         while (isRunning && !alertRaised) {
             try {
@@ -94,9 +90,6 @@ class RecorderService : Service() {
         }
     }
 
-    /************************************************************
-     * 10 SECOND CHUNK RECORDING
-     ************************************************************/
     @SuppressLint("MissingPermission")
     private suspend fun record10SecWav(): File? = withContext(Dispatchers.IO) {
         val sampleRate = 16000
@@ -138,9 +131,6 @@ class RecorderService : Service() {
         wavFile
     }
 
-    /************************************************************
-     * WAV HEADER WRITER (CORRECTED)
-     ************************************************************/
     private fun rawToWav(pcmFile: File, wavFile: File, sampleRate: Int) {
         val pcm = pcmFile.readBytes()
         DataOutputStream(FileOutputStream(wavFile)).use { out ->
@@ -166,9 +156,6 @@ class RecorderService : Service() {
         }
     }
 
-    /************************************************************
-     * SEND TO BACKEND
-     ************************************************************/
     private fun sendToBackend(file: File): JSONObject? {
         val url = "${BASE_URL}recognize"
 
@@ -191,9 +178,6 @@ class RecorderService : Service() {
         }
     }
 
-    /************************************************************
-     * HANDLE BACKEND RESULT
-     ************************************************************/
     private fun handleBackendResult(json: JSONObject?, chunkWav: File) {
         if (json == null) return
 
@@ -203,29 +187,14 @@ class RecorderService : Service() {
             alertRaised = true
             isRunning = false
 
-            // Stop service
             startService(Intent(this, RecorderService::class.java).apply { action = "STOP" })
 
             serviceScope.launch {
-                val location = try {
-                    LocationHelper.getLocation(this@RecorderService)
-                } catch (e: Exception) {
-                    "Unknown Location"
-                }
-
-                // Persistent file
-                val finalFile = File(
-                    filesDir,
-                    "alert_${System.currentTimeMillis()}.wav"
-                )
+                val finalFile = File(filesDir, "alert_${System.currentTimeMillis()}.wav")
                 chunkWav.copyTo(finalFile, overwrite = true)
 
-                AlertBus.sendAlert(
-                    Alert(
-                        timestamp = System.currentTimeMillis(),
-                        audio = finalFile,
-                        location = location
-                    )
+                AlertBus.postStrangerEvent(
+                    StrangerDetectedEvent(audio = finalFile)
                 )
             }
 
@@ -233,9 +202,6 @@ class RecorderService : Service() {
         }
     }
 
-    /************************************************************
-     * NOTIFICATIONS
-     ************************************************************/
     private fun createBaseNotification(): Notification {
         val intent = PendingIntent.getActivity(
             this, 0,

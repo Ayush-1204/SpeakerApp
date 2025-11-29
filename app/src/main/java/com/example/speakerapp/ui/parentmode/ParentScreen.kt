@@ -1,9 +1,14 @@
 package com.example.speakerapp.ui.parentmode
 
-import android.media.MediaPlayer
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,19 +18,16 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.speakerapp.models.Alert
 import com.example.speakerapp.network.Constants
+import com.example.speakerapp.ui.getDeviceID
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -42,24 +44,31 @@ import java.util.*
 @Composable
 fun ParentScreen(
     goBack: () -> Unit,
-    viewModel: ParentViewModel = viewModel()
+    viewModel: ParentViewModel
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
-        while (isActive) {
-            val success = clearTempAudioBackend()
-            if (success) {
-                Log.d("ParentScreen", "Temp audio cleared successfully from backend.")
-            } else {
-                Log.e("ParentScreen", "Failed to clear temp audio from backend.")
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Failed to clear temp audio on backend.", Toast.LENGTH_LONG).show()
-                }
-            }
-            delay(60_000) // Wait for 1 minute
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        ) {
+            // Permission granted
+        } else {
+            Toast.makeText(context, "Location permission is recommended for full functionality.", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    // Request location permission on launch
+    LaunchedEffect(Unit) {
+        locationPermissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
     }
 
     Scaffold(
@@ -67,7 +76,13 @@ fun ParentScreen(
             TopAppBar(
                 title = { Text("Parent Dashboard") },
                 navigationIcon = {
-                    IconButton(onClick = goBack) {
+                    IconButton(onClick = {
+                        scope.launch {
+                            val deviceId = getDeviceID(context)
+                            releaseModeLock(deviceId)
+                            goBack() // Then navigate back
+                        }
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -103,7 +118,7 @@ fun ParentScreen(
                         items(viewModel.alerts) { alert ->
                             AlertCard(
                                 alert = alert,
-                                onPlayClick = { playAudio(context, alert.audio) },
+                                onPlayClick = { viewModel.playAudio(alert.audio) },
                                 onEnrollRequest = { name ->
                                     scope.launch {
                                         val isSuccess = enrollVoiceBackend(alert.audio, name)
@@ -113,27 +128,12 @@ fun ParentScreen(
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         if (isSuccess) {
-                                            try {
-                                                alert.audio.delete()
-                                            } catch (e: Exception) {
-                                                Log.e("ParentScreen", "Failed to delete audio file: ${e.message}")
-                                            }
                                             viewModel.removeAlert(alert)
                                             viewModel.refreshFamiliarList()
                                         }
                                     }
                                 },
-                                onDismissRequest = {
-                                    scope.launch {
-                                        try {
-                                            alert.audio.delete()
-                                            viewModel.removeAlert(alert)
-                                            Toast.makeText(context, "Alert dismissed", Toast.LENGTH_SHORT).show()
-                                        } catch (e: Exception) {
-                                            Log.e("ParentScreen", "Failed to delete audio file: ${e.message}")
-                                        }
-                                    }
-                                }
+                                onDismissRequest = { viewModel.removeAlert(alert) }
                             )
                         }
                     }
@@ -213,6 +213,7 @@ fun AlertCard(
 ) {
     var showDialog by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     if (showDialog) {
         AlertDialog(
@@ -265,7 +266,21 @@ fun AlertCard(
                     .align(Alignment.CenterStart)
             ) {
                 Text("Time: ${formatTimestamp(alert.timestamp)}", style = MaterialTheme.typography.bodySmall)
-                Text("Location: ${alert.location}", style = MaterialTheme.typography.bodySmall)
+
+                Text("Location:", style = MaterialTheme.typography.bodySmall)
+
+                val isLink = alert.location.startsWith("http")
+                Text(
+                    text = if (isLink) "View on Map" else "${alert.location}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isLink) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                    textDecoration = if (isLink) TextDecoration.Underline else TextDecoration.None,
+                    modifier = Modifier.clickable(enabled = isLink) {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(alert.location))
+                        context.startActivity(intent)
+                    }
+                )
+
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = onPlayClick) { Text("Play Audio") }
@@ -280,18 +295,6 @@ fun AlertCard(
 private fun formatTimestamp(timestamp: Long): String {
     val sdf = SimpleDateFormat("hh:mm:ss a", Locale.getDefault())
     return sdf.format(Date(timestamp))
-}
-
-fun playAudio(context: android.content.Context, file: File) {
-    try {
-        val player = MediaPlayer()
-        player.setDataSource(file.absolutePath)
-        player.prepare()
-        player.start()
-        Toast.makeText(context, "Playing audio...", Toast.LENGTH_SHORT).show()
-    } catch (e: Exception) {
-        Toast.makeText(context, "Failed to play audio", Toast.LENGTH_SHORT).show()
-    }
 }
 
 suspend fun enrollVoiceBackend(file: File, speakerName: String): Boolean =
@@ -340,3 +343,34 @@ suspend fun clearTempAudioBackend(): Boolean =
             false
         }
     }
+
+suspend fun releaseModeLock(deviceId: String): Boolean =
+    withContext(Dispatchers.IO) {
+        try {
+            val client = OkHttpClient()
+            val requestBody = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("device_id", deviceId)
+                .build()
+
+            val request = Request.Builder()
+                .url("${Constants.BASE_URL}release_mode")
+                .post(requestBody)
+                .build()
+
+            client.newCall(request).execute().use { it.isSuccessful }
+        } catch (e: Exception) {
+            Log.e("ParentScreen", "Exception releasing mode lock: ${e.message}")
+            false
+        }
+    }
+
+fun getDeviceID(context: android.content.Context): String {
+    val sharedPrefs = context.getSharedPreferences("AppPrefs", android.content.Context.MODE_PRIVATE)
+    var deviceId = sharedPrefs.getString("DEVICE_ID", null)
+    if (deviceId == null) {
+        deviceId = UUID.randomUUID().toString()
+        sharedPrefs.edit().putString("DEVICE_ID", deviceId).apply()
+    }
+    return deviceId
+}

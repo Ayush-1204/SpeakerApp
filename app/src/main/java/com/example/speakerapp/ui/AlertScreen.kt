@@ -7,10 +7,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -21,8 +21,9 @@ import com.example.speakerapp.models.Alert
 @Composable
 fun AlertScreen(navController: NavHostController) {
 
-    // Read last alert ONCE
-    val latest = remember { AlertBus.alerts.replayCache.lastOrNull() }
+    // Collect the latest alert from the AlertBus.
+    // The flow emits Alert objects, so the initial value must be null.
+    val latestAlert by AlertBus.alerts.collectAsState(initial = null)
 
     Box(
         modifier = Modifier
@@ -30,11 +31,14 @@ fun AlertScreen(navController: NavHostController) {
             .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f)),
         contentAlignment = Alignment.Center
     ) {
-        if (latest == null) {
+        // Use the collected alert, which can be null initially.
+        val alert = latestAlert
+        if (alert == null) {
             Text("No new alerts.", color = MaterialTheme.colorScheme.onSurface)
         } else {
+            // Display the most recent alert
             StrangerPopup(
-                alert = latest,
+                alert = alert,
                 onGoParent = {
                     navController.navigate("parent") {
                         popUpTo("home")
@@ -80,7 +84,7 @@ fun StrangerPopup(
             Spacer(Modifier.height(14.dp))
 
             Text(
-                text = "An unrecognized voice was detected near the child's device.",
+                text = "An unrecognized voice was detected near the child's device at location: ${alert.location}.",
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
