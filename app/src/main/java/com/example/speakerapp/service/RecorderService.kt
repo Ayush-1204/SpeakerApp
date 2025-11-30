@@ -20,9 +20,8 @@ import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import com.example.speakerapp.MainActivity
-import com.example.speakerapp.core.AlertBus
-import com.example.speakerapp.core.StrangerDetectedEvent
 import com.example.speakerapp.network.Constants.BASE_URL
+import com.example.speakerapp.ui.NotificationHelper
 import com.google.android.gms.location.LocationServices
 import com.google.gson.Gson
 import kotlinx.coroutines.*
@@ -40,16 +39,17 @@ class RecorderService : Service() {
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var isRunning = false
-    private var alertRaised = false
     private val client = OkHttpClient()
     private lateinit var fusedLocationClient: com.google.android.gms.location.FusedLocationProviderClient
     private var locationJob: Job? = null
+    private var recordingJob: Job? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        NotificationHelper.createNotificationChannels(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -62,29 +62,18 @@ class RecorderService : Service() {
 
     private fun start() {
         if (isRunning) return
-
         isRunning = true
-        alertRaised = false
 
-        createNotificationChannel()
+        startForeground(1, createBaseNotification("Listening for sounds..."))
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                1,
-                createBaseNotification(),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-            )
-        } else {
-            startForeground(1, createBaseNotification())
-        }
-
-        serviceScope.launch { recordingLoop() }
         locationJob = serviceScope.launch { locationUpdateLoop() }
+        recordingJob = serviceScope.launch { recordingLoop() }
     }
 
     private fun stopRecording() {
         isRunning = false
         locationJob?.cancel()
+        recordingJob?.cancel()
         stopSelf()
     }
 
@@ -95,112 +84,87 @@ class RecorderService : Service() {
 
     private suspend fun locationUpdateLoop() {
         while (isRunning) {
-            val location = getCurrentLocation()
-            if (location != null) {
-                sendLocationToBackend(location)
-            }
-            delay(10000) // Send location every 10 seconds
+            getCurrentLocation()?.let { sendLocationToBackend(it) }
+            delay(10000) // 10 seconds
         }
     }
 
     private suspend fun sendLocationToBackend(location: Location) {
-        withContext(Dispatchers.IO) {
-            try {
-                val locationData = mapOf("latitude" to location.latitude, "longitude" to location.longitude)
-                val jsonBody = Gson().toJson(locationData)
+        try {
+            val locationData = mapOf("latitude" to location.latitude, "longitude" to location.longitude)
+            val request = Request.Builder()
+                .url("${BASE_URL}update_location")
+                .post(Gson().toJson(locationData).toRequestBody("application/json".toMediaTypeOrNull()))
+                .build()
 
-                val request = Request.Builder()
-                    .url("${BASE_URL}update_location")
-                    .post(jsonBody.toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull()))
-                    .build()
-
-                client.newCall(request).execute().use { response ->
-                    if (response.isSuccessful) {
-                        Log.d("RecorderService", "Successfully updated location to server.")
-                    } else {
-                        Log.e("RecorderService", "Failed to update location. Code: ${response.code}")
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("RecorderService", "Exception sending location: ${e.message}")
+            client.newCall(request).execute().use {
+                if (it.isSuccessful) Log.d("RecorderService", "Location updated.")
+                else Log.e("RecorderService", "Failed to update location: ${it.code}")
             }
+        } catch (e: Exception) {
+            Log.e("RecorderService", "Location update exception: ${e.message}")
         }
     }
 
     private suspend fun recordingLoop() {
-        while (isRunning && !alertRaised) {
-            try {
-                val wavFile = record10SecWav()
-                if (wavFile != null) {
-                    val json = sendToBackend(wavFile)
-                    handleBackendResult(json, wavFile)
+        while (isRunning) {
+            val wavFile = record10SecWav()
+            if (wavFile != null) {
+                val json = sendToBackend(wavFile)
+                val result = json?.optString("result")
+
+                if (result.equals("stranger", true)) {
+                    handleStrangerDetected()
+                    // Cooldown period
+                    updateNotification("Stranger detected. Cooling down...")
+                    delay(3 * 60 * 1000) // 3 minutes
+                    updateNotification("Resuming listening...")
                 }
-            } catch (e: Exception) {
-                Log.e("RecorderService", "Loop error: ${e.message}")
+                wavFile.delete()
             }
         }
     }
 
     @SuppressLint("MissingPermission")
     private suspend fun record10SecWav(): File? = withContext(Dispatchers.IO) {
-        val sampleRate = 16000
-        val channelConfig = AudioFormat.CHANNEL_IN_MONO
-        val audioFormat = AudioFormat.ENCODING_PCM_16BIT
-        val minBuffer = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
-
-        val recorder = AudioRecord(
-            android.media.MediaRecorder.AudioSource.MIC,
-            sampleRate,
-            channelConfig,
-            audioFormat,
-            minBuffer * 4
-        )
-
-        val pcmFile = File(cacheDir, "temp_chunk.pcm")
-        val fos = FileOutputStream(pcmFile)
-        val buffer = ByteArray(minBuffer)
+        val minBuffer = AudioRecord.getMinBufferSize(16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
+        val recorder = AudioRecord(android.media.MediaRecorder.AudioSource.MIC, 16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, minBuffer * 4)
+        val pcmFile = File(cacheDir, "temp.pcm")
 
         try {
             recorder.startRecording()
-            val endTime = System.currentTimeMillis() + 10_000 // 10 seconds
-
-            while (isRunning && System.currentTimeMillis() < endTime) {
-                val read = recorder.read(buffer, 0, buffer.size)
-                if (read > 0) fos.write(buffer, 0, read)
+            FileOutputStream(pcmFile).use { fos ->
+                val buffer = ByteArray(minBuffer)
+                val endTime = System.currentTimeMillis() + 10000
+                while (System.currentTimeMillis() < endTime && isRunning) {
+                    val read = recorder.read(buffer, 0, buffer.size)
+                    if (read > 0) fos.write(buffer, 0, read)
+                }
             }
-
         } finally {
             recorder.stop()
             recorder.release()
-            fos.close()
         }
 
-        val wavFile = File(cacheDir, "final_chunk.wav")
-        rawToWav(pcmFile, wavFile, sampleRate)
+        val wavFile = File(cacheDir, "chunk.wav")
+        rawToWav(pcmFile, wavFile)
         pcmFile.delete()
-
         wavFile
     }
 
-    private fun rawToWav(pcmFile: File, wavFile: File, sampleRate: Int) {
+    private fun rawToWav(pcmFile: File, wavFile: File) {
         val pcm = pcmFile.readBytes()
         DataOutputStream(FileOutputStream(wavFile)).use { out ->
-
-            val channels = 1
-            val bitsPerSample = 16
-            val byteRate = sampleRate * channels * bitsPerSample / 8
-
             out.writeBytes("RIFF")
             out.writeInt(Integer.reverseBytes(36 + pcm.size))
-            out.writeBytes("WAVE")
-            out.writeBytes("fmt ")
+            out.writeBytes("WAVEfmt ")
             out.writeInt(Integer.reverseBytes(16))
             out.writeShort(java.lang.Short.reverseBytes(1.toShort()).toInt())
-            out.writeShort(java.lang.Short.reverseBytes(channels.toShort()).toInt())
-            out.writeInt(Integer.reverseBytes(sampleRate))
-            out.writeInt(Integer.reverseBytes(byteRate))
-            out.writeShort(java.lang.Short.reverseBytes((channels * bitsPerSample / 8).toShort()).toInt())
-            out.writeShort(java.lang.Short.reverseBytes(bitsPerSample.toShort()).toInt())
+            out.writeShort(java.lang.Short.reverseBytes(1.toShort()).toInt())
+            out.writeInt(Integer.reverseBytes(16000))
+            out.writeInt(Integer.reverseBytes(16000 * 2))
+            out.writeShort(java.lang.Short.reverseBytes(2.toShort()).toInt())
+            out.writeShort(java.lang.Short.reverseBytes(16.toShort()).toInt())
             out.writeBytes("data")
             out.writeInt(Integer.reverseBytes(pcm.size))
             out.write(pcm)
@@ -208,100 +172,55 @@ class RecorderService : Service() {
     }
 
     private fun sendToBackend(file: File): JSONObject? {
-        val url = "${BASE_URL}recognize"
-
         return try {
             val body = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
-                .addFormDataPart("file", "chunk.wav",
-                    file.asRequestBody("audio/wav".toMediaTypeOrNull()))
+                .addFormDataPart("file", "chunk.wav", file.asRequestBody("audio/wav".toMediaTypeOrNull()))
                 .build()
+            val request = Request.Builder().url("${BASE_URL}recognize").post(body).build()
 
-            val req = Request.Builder().url(url).post(body).build()
-
-            client.newCall(req).execute().use { res ->
-                if (!res.isSuccessful) return null
-                res.body?.string()?.let { JSONObject(it) }
+            client.newCall(request).execute().use { res ->
+                if (res.isSuccessful) res.body?.string()?.let { JSONObject(it) } else null
             }
         } catch (e: Exception) {
-            Log.e("RecorderService", "HTTP error: ${e.message}")
+            Log.e("RecorderService", "Backend error: ${e.message}")
             null
         }
     }
 
-    private fun handleBackendResult(json: JSONObject?, chunkWav: File) {
-        if (json == null) return
-
-        val result = json.optString("result")
-
-        if (result.equals("stranger", true) && !alertRaised) {
-            alertRaised = true
-            isRunning = false
-
-            // The backend now creates the alert, so we don't need to call sendAlertToServer here.
-
-            // Also post the event locally for the child device's UI
-            val finalFile = File(filesDir, "alert_${System.currentTimeMillis()}.wav")
-            chunkWav.copyTo(finalFile, overwrite = true)
-            AlertBus.postStrangerEvent(StrangerDetectedEvent(audio = finalFile))
-
-            sendAlertNotification("🚨 Stranger detected!")
-            stopSelf()
-        }
+    private fun handleStrangerDetected() {
+        // The backend now creates the alert, so we only need to notify the parent.
+        // The ParentViewModel will handle the high-priority notification.
+        Log.d("RecorderService", "Stranger detected. The ParentViewModel will notify the parent device.")
     }
 
     @SuppressLint("MissingPermission")
     private suspend fun getCurrentLocation(): Location? {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            Log.e("RecorderService", "Location permission not granted for service.")
-            return null
-        }
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return null
         return fusedLocationClient.lastLocation.await()
     }
 
-    private fun createBaseNotification(): Notification {
-        val intent = PendingIntent.getActivity(
-            this, 0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
-        )
-
+    private fun createBaseNotification(text: String): Notification {
+        val intent = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         return NotificationCompat.Builder(this, "recorder_channel")
             .setContentTitle("Child Protection Active")
-            .setContentText("Listening…")
+            .setContentText(text)
             .setSmallIcon(android.R.drawable.ic_lock_silent_mode_off)
             .setContentIntent(intent)
             .build()
     }
 
-    private fun sendAlertNotification(msg: String) {
-        val n = NotificationCompat.Builder(this, "alert_channel")
-            .setContentTitle("High Alert")
-            .setContentText(msg)
-            .setSmallIcon(android.R.drawable.stat_sys_warning)
-            .build()
-
-        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-            .notify(1001, n)
+    private fun updateNotification(text: String) {
+        val notification = createBaseNotification(text)
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.notify(1, notification)
     }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = getSystemService(NotificationManager::class.java)
-
-            val recorder = NotificationChannel(
-                "recorder_channel", "Recorder Service",
-                NotificationManager.IMPORTANCE_LOW
-            )
-
-            val alert = NotificationChannel(
-                "alert_channel", "Alert Notifications",
-                NotificationManager.IMPORTANCE_HIGH
-            )
-
+            val recorder = NotificationChannel("recorder_channel", "Recorder Service", NotificationManager.IMPORTANCE_LOW)
             manager.createNotificationChannel(recorder)
-            manager.createNotificationChannel(alert)
         }
     }
 }

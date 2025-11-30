@@ -12,6 +12,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <application
         android:allowBackup="true"
@@ -19,7 +20,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SpeakerApp"
+        android.theme="@style/Theme.SpeakerApp"
         android:networkSecurityConfig="@xml/network_security_config"
         android:usesCleartextTraffic="true">
 
@@ -37,7 +38,7 @@
         <!-- Correctly Declared RecorderService -->
         <service
             android:name=".service.RecorderService"
-            android:exported="false"
+            android.exported="false"
             android:foregroundServiceType="microphone" />
 
     </application>

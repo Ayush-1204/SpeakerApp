@@ -13,6 +13,7 @@ import com.example.speakerapp.models.Alert
 import com.example.speakerapp.network.Constants
 import com.example.speakerapp.network.RetrofitInstance
 import com.example.speakerapp.network.ServerAlert
+import com.example.speakerapp.ui.NotificationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -59,6 +60,8 @@ class ParentViewModel(application: Application) : AndroidViewModel(application) 
                                 downloadedAlerts.forEach { newAlert ->
                                     if (currentAlerts.none { it.timestamp == newAlert.timestamp }) {
                                         currentAlerts.add(newAlert)
+                                        // Show a notification for the new alert
+                                        NotificationHelper.showStrangerAlertNotification(getApplication(), newAlert.timestamp)
                                     }
                                 }
 

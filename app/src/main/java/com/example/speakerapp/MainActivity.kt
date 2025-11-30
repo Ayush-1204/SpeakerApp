@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.speakerapp.core.AlertBus
 import com.example.speakerapp.models.Alert
 import com.example.speakerapp.ui.AppNavHost
+import com.example.speakerapp.ui.NotificationHelper
 import com.example.speakerapp.ui.theme.SpeakerAppTheme
 import com.example.speakerapp.utils.LocationHelper
 import kotlinx.coroutines.flow.collectLatest
@@ -19,6 +20,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Create notification channels on app startup
+        NotificationHelper.createNotificationChannels(this)
+
         setContent {
             SpeakerAppTheme {
                 val navController = rememberNavController()
