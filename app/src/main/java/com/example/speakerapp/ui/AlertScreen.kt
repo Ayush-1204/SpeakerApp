@@ -15,15 +15,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.example.speakerapp.core.AlertBus
+import com.example.speakerapp.common.AlertEventBus
 import com.example.speakerapp.models.Alert
 
 @Composable
 fun AlertScreen(navController: NavHostController) {
 
-    // Collect the latest alert from the AlertBus.
-    // The flow emits Alert objects, so the initial value must be null.
-    val latestAlert by AlertBus.alerts.collectAsState(initial = null)
+    // Collect the latest alert from the AlertEventBus.
+    val latestAlert by AlertEventBus.events.collectAsState(initial = null)
 
     Box(
         modifier = Modifier
@@ -34,7 +33,8 @@ fun AlertScreen(navController: NavHostController) {
         // Use the collected alert, which can be null initially.
         val alert = latestAlert
         if (alert == null) {
-            Text("No new alerts.", color = MaterialTheme.colorScheme.onSurface)
+            // This screen should not be visible without an alert.
+            // You might want to navigate back or show a loading indicator.
         } else {
             // Display the most recent alert
             StrangerPopup(

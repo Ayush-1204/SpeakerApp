@@ -10,14 +10,12 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.pm.ServiceInfo
 import android.location.Location
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
-import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import com.example.speakerapp.MainActivity
 import com.example.speakerapp.network.Constants.BASE_URL
@@ -114,8 +112,8 @@ class RecorderService : Service() {
                 val result = json?.optString("result")
 
                 if (result.equals("stranger", true)) {
-                    handleStrangerDetected()
-                    // Cooldown period
+                    // Log the detection and start the cooldown.
+                    Log.d("RecorderService", "Stranger detected. Starting 3-minute cooldown.")
                     updateNotification("Stranger detected. Cooling down...")
                     delay(3 * 60 * 1000) // 3 minutes
                     updateNotification("Resuming listening...")
@@ -127,6 +125,7 @@ class RecorderService : Service() {
 
     @SuppressLint("MissingPermission")
     private suspend fun record10SecWav(): File? = withContext(Dispatchers.IO) {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return@withContext null
         val minBuffer = AudioRecord.getMinBufferSize(16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
         val recorder = AudioRecord(android.media.MediaRecorder.AudioSource.MIC, 16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, minBuffer * 4)
         val pcmFile = File(cacheDir, "temp.pcm")
@@ -186,12 +185,6 @@ class RecorderService : Service() {
             Log.e("RecorderService", "Backend error: ${e.message}")
             null
         }
-    }
-
-    private fun handleStrangerDetected() {
-        // The backend now creates the alert, so we only need to notify the parent.
-        // The ParentViewModel will handle the high-priority notification.
-        Log.d("RecorderService", "Stranger detected. The ParentViewModel will notify the parent device.")
     }
 
     @SuppressLint("MissingPermission")

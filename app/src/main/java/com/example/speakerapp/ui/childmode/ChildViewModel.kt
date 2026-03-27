@@ -2,14 +2,12 @@ package com.example.speakerapp.ui.childmode
 
 import android.annotation.SuppressLint
 import android.app.Application
-import android.os.Looper
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.speakerapp.audio.AudioMonitor
-import com.example.speakerapp.core.AlertBus
-import com.example.speakerapp.models.Alert
 import com.example.speakerapp.network.Constants.BASE_URL
-import com.google.android.gms.location.* 
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -24,13 +22,13 @@ class ChildViewModel(application: Application) : AndroidViewModel(application) {
     private val client = OkHttpClient()
     private var lastRequestTime = 0L
     private val cooldownMs = 3000L
+    private var lastStrangerAlertTime = 0L
+    private val strangerAlertCooldownMs = 30000L // 30 seconds
 
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
 
     var statusText: String = "Listening..."
         private set
-
-    var onStrangerDetected: (() -> Unit)? = null
 
     private val audioMonitor = AudioMonitor(getApplication()) { windowFile ->
         processAudio(windowFile)
@@ -48,36 +46,40 @@ class ChildViewModel(application: Application) : AndroidViewModel(application) {
     private fun processAudio(file: File) {
         val now = System.currentTimeMillis()
         if (now - lastRequestTime < cooldownMs) return
+
+        if (lastStrangerAlertTime != 0L && now - lastStrangerAlertTime < strangerAlertCooldownMs) {
+            // In cooldown after stranger detection, so don't send a new request.
+            return
+        }
+
         lastRequestTime = now
 
-        fusedLocationClient.getCurrentLocation(LocationRequest.PRIORITY_HIGH_ACCURACY, null)
-            .addOnSuccessListener { location ->
-                viewModelScope.launch(Dispatchers.IO) {
-                    try {
-                        val request = buildRequest(file)
-                        val response = client.newCall(request).execute()
+        // The location is updated by the RecorderService in the background.
+        // We just need to send the audio for recognition.
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val request = buildRequest(file)
+                val response = client.newCall(request).execute()
 
-                        val body = response.body?.string() ?: ""
-                        if (body.contains("stranger", ignoreCase = true)) {
-                            statusText = "⚠ Stranger Detected!"
-                            val alert = Alert(
-                                timestamp = System.currentTimeMillis(),
-                                audio = file,
-                                location = "${location.latitude}, ${location.longitude}"
-                            )
-                            AlertBus.sendAlert(alert)
-                            onStrangerDetected?.invoke()
-                        } else if (body.contains("familiar", ignoreCase = true)) {
-                            statusText = "Familiar voice"
-                        } else {
-                            statusText = "Listening..."
-                        }
-
-                    } catch (e: Exception) {
-                        statusText = "Error: ${e.message}"
-                    }
+                val body = response.body?.string() ?: ""
+                if (body.contains("stranger", ignoreCase = true)) {
+                    statusText = "⚠ Stranger Detected!"
+                    lastStrangerAlertTime = now
+                    // The backend handles alert creation.
+                    // The child device should not show a pop-up.
+                } else if (body.contains("familiar", ignoreCase = true)) {
+                    statusText = "Familiar voice"
+                    lastStrangerAlertTime = 0L
+                } else {
+                    statusText = "Listening..."
+                    lastStrangerAlertTime = 0L
                 }
+
+            } catch (e: Exception) {
+                statusText = "Error: ${e.message}"
+                lastStrangerAlertTime = 0L
             }
+        }
     }
 
     private fun buildRequest(file: File): Request {

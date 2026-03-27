@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.speakerapp.common.AlertEventBus
 import com.example.speakerapp.models.Alert
 import com.example.speakerapp.network.Constants
 import com.example.speakerapp.network.RetrofitInstance
@@ -62,6 +63,8 @@ class ParentViewModel(application: Application) : AndroidViewModel(application) 
                                         currentAlerts.add(newAlert)
                                         // Show a notification for the new alert
                                         NotificationHelper.showStrangerAlertNotification(getApplication(), newAlert.timestamp)
+                                        // Post an event to trigger the pop-up
+                                        viewModelScope.launch { AlertEventBus.postEvent(newAlert) }
                                     }
                                 }
 
