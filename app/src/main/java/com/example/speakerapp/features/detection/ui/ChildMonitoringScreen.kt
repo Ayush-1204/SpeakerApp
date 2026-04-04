@@ -4,8 +4,10 @@ import android.content.Intent
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,6 +23,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -416,6 +419,8 @@ fun WaveBar(height: Int, primary: Boolean = false, active: Boolean) {
 
 @Composable
 fun ActivityLogsSection(logs: List<DetectionLogEntry>, onExportCsv: () -> Unit) {
+    val horizontalState = rememberScrollState()
+
     Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -433,18 +438,24 @@ fun ActivityLogsSection(logs: List<DetectionLogEntry>, onExportCsv: () -> Unit) 
             colors = CardDefaults.cardColors(containerColor = Color.White),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column {
-                LogHeaderRow()
-                HorizontalDivider(color = Color(0xFFF0F4F4))
-                if (logs.isEmpty()) {
-                    Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        Text("No logs yet", style = MaterialTheme.typography.bodySmall, color = Color(0xFF6F7979))
-                    }
-                } else {
-                    logs.forEachIndexed { index, log ->
-                        LogRow(log.confidence, log.streak, log.decision, log.alertId, log.isSuccess)
-                        if (index < logs.size - 1) {
-                            HorizontalDivider(color = Color(0xFFF0F4F4))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(horizontalState)
+            ) {
+                Column(modifier = Modifier.widthIn(min = 640.dp)) {
+                    LogHeaderRow()
+                    HorizontalDivider(color = Color(0xFFF0F4F4))
+                    if (logs.isEmpty()) {
+                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            Text("No logs yet", style = MaterialTheme.typography.bodySmall, color = Color(0xFF6F7979))
+                        }
+                    } else {
+                        logs.forEachIndexed { index, log ->
+                            LogRow(log.confidence, log.streak, log.decision, log.alertId, log.isSuccess)
+                            if (index < logs.size - 1) {
+                                HorizontalDivider(color = Color(0xFFF0F4F4))
+                            }
                         }
                     }
                 }
@@ -465,13 +476,16 @@ private fun buildLogsCsv(logs: List<DetectionLogEntry>): String {
 @Composable
 fun LogHeaderRow() {
     Row(
-        modifier = Modifier.background(Color(0xFFF0F4F4)).padding(16.dp).fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        modifier = Modifier
+            .background(Color(0xFFF0F4F4))
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        LogHeaderText("CONFIDENCE", Modifier.weight(1f))
-        LogHeaderText("STREAK", Modifier.weight(1.2f))
-        LogHeaderText("DECISION", Modifier.weight(1.5f))
-        LogHeaderText("ALERT ID", Modifier.weight(1f))
+        LogHeaderText("CONFIDENCE", Modifier.width(120.dp))
+        LogHeaderText("STREAK", Modifier.width(130.dp))
+        LogHeaderText("DECISION", Modifier.width(190.dp))
+        LogHeaderText("ALERT ID", Modifier.width(160.dp))
     }
 }
 
@@ -483,19 +497,43 @@ fun LogHeaderText(text: String, modifier: Modifier) {
 @Composable
 fun LogRow(confidence: String, streak: String, decision: String, id: String, success: Boolean) {
     Row(
-        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(confidence, style = MaterialTheme.typography.bodySmall, color = if (success) Color(0xFF181C1D) else Color(0xFFD97706), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-        Text(streak, style = MaterialTheme.typography.bodySmall, color = Color(0xFF4A6267), modifier = Modifier.weight(1.2f))
-        Box(modifier = Modifier.weight(1.5f)) {
+        Text(
+            confidence,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (success) Color(0xFF181C1D) else Color(0xFFD97706),
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.width(120.dp)
+        )
+        Text(
+            streak,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color(0xFF4A6267),
+            modifier = Modifier.width(130.dp)
+        )
+        Box(modifier = Modifier.width(190.dp)) {
             Surface(
                 color = if (success) Color(0xFFDCF2E1) else Color(0xFFFEF3C7),
                 shape = CircleShape
             ) {
-                Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     Box(modifier = Modifier.size(4.dp).background(if (success) Color(0xFF16A34A) else Color(0xFFD97706), CircleShape))
-                    Text(decision, style = MaterialTheme.typography.labelSmall, color = if (success) Color(0xFF166534) else Color(0xFF92400E), fontWeight = FontWeight.Bold)
+                    Text(
+                        decision,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (success) Color(0xFF166534) else Color(0xFF92400E),
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }
@@ -503,7 +541,16 @@ fun LogRow(confidence: String, streak: String, decision: String, id: String, suc
             color = if (success) Color(0xFFEBEFEF) else Color(0xFFFFDAD6),
             shape = RoundedCornerShape(4.dp)
         ) {
-            Text(id, style = MaterialTheme.typography.labelSmall, color = if (success) Color(0xFF3F4949) else Color(0xFF93000A), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+            Text(
+                id.takeLast(10),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (success) Color(0xFF3F4949) else Color(0xFF93000A),
+                modifier = Modifier
+                    .width(150.dp)
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

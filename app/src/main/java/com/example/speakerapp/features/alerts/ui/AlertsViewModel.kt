@@ -2,6 +2,7 @@ package com.example.speakerapp.features.alerts.ui
 
 import android.content.Context
 import com.example.speakerapp.core.audio.AudioPlayer
+import com.example.speakerapp.core.realtime.RealtimeSocketManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.speakerapp.features.enrollment.data.EnrollmentRepository
@@ -17,8 +18,17 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.longOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
+import java.time.Instant
 import javax.inject.Inject
 
 data class AlertsUiState(
@@ -39,16 +49,49 @@ class AlertsViewModel @Inject constructor(
     private val alertsRepository: AlertsRepository,
     private val enrollmentRepository: EnrollmentRepository,
     private val deviceRepository: DeviceRepository,
+    private val realtimeSocketManager: RealtimeSocketManager,
     private val audioPlayer: AudioPlayer,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AlertsUiState())
     val uiState: StateFlow<AlertsUiState> = _uiState.asStateFlow()
+    private var realtimeJob: Job? = null
 
     init {
         loadAlerts()
         loadDevices()
+        startRealtimeUpdates()
+    }
+
+    private fun startRealtimeUpdates() {
+        realtimeSocketManager.acquire()
+        realtimeJob?.cancel()
+        realtimeJob = viewModelScope.launch {
+            realtimeSocketManager.events.collect { event ->
+                when (event.type.lowercase()) {
+                    "alert_created", "stranger_detected", "alert.new" -> {
+                        event.payload.toAlertItemOrNull()?.let { incoming ->
+                            val current = _uiState.value.alerts
+                            val deduped = current.filterNot { it.id == incoming.id }
+                            _uiState.value = _uiState.value.copy(alerts = listOf(incoming) + deduped)
+                        }
+                    }
+                    "device_status_changed", "device_updated", "monitoring_changed", "device.monitoring" -> {
+                        event.payload.toMonitoredDeviceOrNull()?.let { incoming ->
+                            val current = _uiState.value.devices
+                            val exists = current.any { it.id == incoming.id }
+                            val updated = if (exists) {
+                                current.map { old -> if (old.id == incoming.id) old.merge(incoming) else old }
+                            } else {
+                                current + incoming
+                            }
+                            _uiState.value = _uiState.value.copy(devices = updated)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fun loadAlerts(limit: Int = 50, offset: Int = 0) {
@@ -262,4 +305,53 @@ class AlertsViewModel @Inject constructor(
             }
         }
     }
+
+    override fun onCleared() {
+        super.onCleared()
+        realtimeJob?.cancel()
+        realtimeSocketManager.release()
+    }
+}
+
+private fun JsonObject.toAlertItemOrNull(): AlertItem? {
+    val id = this["id"]?.jsonPrimitive?.contentOrNull ?: return null
+    val deviceId = this["device_id"]?.jsonPrimitive?.contentOrNull ?: return null
+    val timestamp = this["timestamp"]?.jsonPrimitive?.contentOrNull ?: Instant.now().toString()
+
+    return AlertItem(
+        id = id,
+        deviceId = deviceId,
+        timestamp = timestamp,
+        timestampMs = this["timestamp_ms"]?.jsonPrimitive?.longOrNull,
+        confidenceScore = this["confidence_score"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
+        audioClipPath = this["audio_clip_path"]?.jsonPrimitive?.contentOrNull ?: "",
+        latitude = this["latitude"]?.jsonPrimitive?.doubleOrNull,
+        longitude = this["longitude"]?.jsonPrimitive?.doubleOrNull,
+        lat = this["lat"]?.jsonPrimitive?.doubleOrNull,
+        lng = this["lng"]?.jsonPrimitive?.doubleOrNull,
+        acknowledgedAt = this["acknowledged_at"]?.jsonPrimitive?.contentOrNull,
+        isAcknowledged = this["acknowledged_at"]?.jsonPrimitive?.contentOrNull != null
+    )
+}
+
+private fun JsonObject.toMonitoredDeviceOrNull(): MonitoredDevice? {
+    val id = this["id"]?.jsonPrimitive?.contentOrNull ?: return null
+    return MonitoredDevice(
+        id = id,
+        deviceName = this["device_name"]?.jsonPrimitive?.contentOrNull ?: "Child Device",
+        role = this["role"]?.jsonPrimitive?.contentOrNull ?: "child_device",
+        batteryPercent = this["battery_percent"]?.jsonPrimitive?.intOrNull,
+        isOnline = this["is_online"]?.jsonPrimitive?.booleanOrNull,
+        monitoringEnabled = this["monitoring_enabled"]?.jsonPrimitive?.booleanOrNull ?: false
+    )
+}
+
+private fun MonitoredDevice.merge(incoming: MonitoredDevice): MonitoredDevice {
+    return copy(
+        deviceName = incoming.deviceName.ifBlank { deviceName },
+        role = incoming.role.ifBlank { role },
+        batteryPercent = incoming.batteryPercent ?: batteryPercent,
+        isOnline = incoming.isOnline ?: isOnline,
+        monitoringEnabled = incoming.monitoringEnabled
+    )
 }

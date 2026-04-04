@@ -96,6 +96,7 @@ fun MainContent(tokenManager: TokenManager) {
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { _ -> }
+    val appMaxWidth = 720.dp
 
     LaunchedEffect(Unit) {
         SafeEarFirebaseMessagingService.ensureAlertChannel(context)
@@ -134,22 +135,41 @@ fun MainContent(tokenManager: TokenManager) {
     }
 
     if (!authState.isLoggedIn) {
-        LoginScreen(viewModel = authViewModel) {
-            navController.navigate(Screen.DeviceRegistration.route) {
-                popUpTo(Screen.Login.route) { inclusive = true }
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = appMaxWidth)
+            ) {
+                LoginScreen(viewModel = authViewModel) {
+                    navController.navigate(Screen.DeviceRegistration.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                }
             }
         }
     } else {
-        Box(modifier = Modifier.fillMaxSize()) {
-            NavHost(
-                navController = navController,
-                startDestination = when (deviceRole) {
-                    null -> Screen.DeviceRegistration.route
-                    "parent_device" -> Screen.ParentDashboard.route
-                    else -> Screen.ChildMonitoring.route
-                },
-                modifier = Modifier.fillMaxSize()
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = appMaxWidth)
             ) {
+                NavHost(
+                    navController = navController,
+                    startDestination = when (deviceRole) {
+                        null -> Screen.DeviceRegistration.route
+                        "parent_device" -> Screen.ParentDashboard.route
+                        else -> Screen.ChildMonitoring.route
+                    },
+                    modifier = Modifier.fillMaxSize()
+                ) {
                     composable(Screen.DeviceRegistration.route) {
                         val viewModel: DeviceRegistrationViewModel = hiltViewModel()
                         DeviceRegistrationScreen(viewModel) { role ->
@@ -241,15 +261,16 @@ fun MainContent(tokenManager: TokenManager) {
                     }
                 }
 
-            // Truly floating Navigation Bar overlay
-            deviceRole?.let { role ->
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .navigationBarsPadding()
-                        .padding(bottom = 12.dp)
-                ) {
-                    BottomNavigationBar(navController, role)
+                // Truly floating Navigation Bar overlay
+                deviceRole?.let { role ->
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(bottom = 12.dp)
+                    ) {
+                        BottomNavigationBar(navController, role)
+                    }
                 }
             }
         }
