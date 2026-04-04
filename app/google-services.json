@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "255616861785",
+    "project_id": "speakerapp-728e8",
+    "storage_bucket": "speakerapp-728e8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:255616861785:android:a21291d9d7efb052395348",
+        "android_client_info": {
+          "package_name": "com.example.speakerapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "255616861785-lvbe6njkmqr64c143266d6fnplo2mruc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.speakerapp",
+            "certificate_hash": "8fcfb02784dfd378d8872a9e4866d388fff61853"
+          }
+        },
+        {
+          "client_id": "255616861785-g3bd8b8dovim80qb8avuf02ch4jltou1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkwAYtYOIF19s80Sf4aCyDmhShOmTIqTM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "255616861785-g3bd8b8dovim80qb8avuf02ch4jltou1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

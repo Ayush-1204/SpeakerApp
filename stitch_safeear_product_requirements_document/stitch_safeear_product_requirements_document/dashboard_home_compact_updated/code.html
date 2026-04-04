@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Teal Sentinel - Parent Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-fixed-variant": "#334b4f",
+                    "surface-bright": "#f6fafa",
+                    "secondary-container": "#cde7ed",
+                    "tertiary-fixed": "#9df898",
+                    "on-secondary-container": "#50686d",
+                    "on-primary-container": "#95d6e4",
+                    "surface-dim": "#d7dbdb",
+                    "surface": "#f6fafa",
+                    "primary-fixed": "#acedfb",
+                    "on-primary-fixed-variant": "#004e59",
+                    "surface-container-lowest": "#ffffff",
+                    "on-surface-variant": "#3f4949",
+                    "on-secondary": "#ffffff",
+                    "on-tertiary-fixed-variant": "#005312",
+                    "inverse-primary": "#90d1df",
+                    "on-tertiary": "#ffffff",
+                    "inverse-on-surface": "#edf1f1",
+                    "surface-tint": "#206773",
+                    "on-tertiary-fixed": "#002204",
+                    "surface-container-low": "#f0f4f4",
+                    "primary-fixed-dim": "#90d1df",
+                    "on-secondary-fixed": "#051f23",
+                    "surface-container-highest": "#dfe3e3",
+                    "inverse-surface": "#2c3132",
+                    "secondary-fixed-dim": "#b1cbd1",
+                    "on-background": "#181c1d",
+                    "error-container": "#ffdad6",
+                    "surface-container-high": "#e5e9e9",
+                    "tertiary-fixed-dim": "#82db7e",
+                    "surface-variant": "#dfe3e3",
+                    "on-primary-fixed": "#001f25",
+                    "on-error": "#ffffff",
+                    "outline-variant": "#bec8c9",
+                    "on-primary": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "error": "#ba1a1a",
+                    "outline": "#6f7979",
+                    "on-surface": "#181c1d",
+                    "surface-container": "#ebefef",
+                    "secondary-fixed": "#cde7ed",
+                    "secondary": "#4a6267",
+                    "primary": "#004650",
+                    "tertiary": "#004a0f",
+                    "on-tertiary-container": "#88e083",
+                    "tertiary-container": "#006518",
+                    "primary-container": "#135f6b",
+                    "background": "#f6fafa"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .pulse-dot {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: .5; transform: scale(1.2); }
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f6fafa;
+        }
+        h1, h2, h3, .brand-font {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface" data-mode="connect">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full z-50 bg-cyan-50/80 dark:bg-slate-950/80 backdrop-blur-xl flex justify-between items-center px-6 h-16 shadow-[0_8px_24px_rgba(0,0,0,0.02)]">
+<div class="flex items-center gap-2">
+<span class="text-xl font-extrabold text-teal-900 dark:text-teal-50 tracking-tight">SafeEar</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-teal-700 dark:text-teal-400 p-2 hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors active:scale-95 duration-200" data-icon="notifications">notifications</button>
+<div class="w-8 h-8 rounded-full overflow-hidden ring-2 ring-surface-container-lowest">
+<img alt="User profile" data-alt="professional portrait of a middle-aged father with a friendly expression, soft daylight, minimalist background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCscdmicKxDpweDIkFVGaXfSH86IoVsOqt3as_62So8LGYO1m3jYA8vcXNWeXzupXK66qnZUlDBSnKNhQGMGLpHf_nZybYB_O6MnjIKJ6CWRg-Amo_pm_qUaBhaRB2yZQKz__YuMJXuixLGoD9sBRsGi4lEImo8TNmz3HlQcHomI_SFw9SL1k5Pr4lBcGPEz3egXk_QvP4JwTzAC7iwGQoLbAOhm6K_matkJQ3mPFcO5odeGJPjJ9XawFq5rWScXYAH2iViIEBAeEJ"/>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-7xl mx-auto">
+<!-- Hero Section: Child Mode Status & Safety Score -->
+<section class="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12 items-stretch">
+<div class="lg:col-span-3 bg-surface-container-lowest rounded-xl px-6 py-6 flex flex-col justify-between shadow-[0_8px_24px_rgba(0,0,0,0.02)] relative overflow-hidden min-h-[220px]">
+<div class="relative z-10">
+<div class="flex items-center gap-3 mb-3">
+<span class="pulse-dot w-3 h-3 rounded-full bg-tertiary-fixed-dim"></span>
+<span class="text-[10px] font-bold uppercase tracking-widest text-secondary font-headline">Child Mode Recording Status</span>
+</div>
+<div class="mb-4">
+<h1 class="text-[2.5rem] font-bold leading-none text-primary mb-2">Active</h1>
+<p class="text-sm text-secondary opacity-70 max-w-md">The vigilant sanctuary is currently monitoring acoustic patterns to ensure your child's environment remains safe.</p>
+</div>
+</div>
+<button class="bg-primary text-on-primary py-3 px-6 rounded-xl font-bold text-base flex items-center justify-center gap-3 hover:opacity-90 active:scale-95 transition-all w-fit relative z-10">
+<span class="material-symbols-outlined text-xl" data-icon="mic" data-weight="fill" style="font-variation-settings: 'FILL' 1;">mic</span>
+                    Start Recording
+                </button>
+<!-- Decorative Abstract Shape -->
+<div class="absolute -right-12 -bottom-12 w-64 h-64 bg-primary-container/10 rounded-full blur-3xl"></div>
+</div>
+<!-- Daily Safety Score Bento - Smaller and more compact -->
+<div class="lg:col-span-1 bg-primary-container text-on-primary-container rounded-xl p-6 flex flex-col justify-center items-center text-center shadow-[0_8px_24px_rgba(0,0,0,0.02)]">
+<span class="text-[10px] font-bold uppercase tracking-widest mb-2 opacity-80 font-headline">Safety Score</span>
+<div class="text-[2.5rem] font-extrabold mb-1">98</div>
+<div class="w-full bg-primary/20 h-1.5 rounded-full mb-4 max-w-[80px]">
+<div class="bg-on-primary-container h-full rounded-full" style="width: 98%"></div>
+</div>
+<p class="text-[11px] font-medium leading-tight opacity-90">Optimal environment maintained today.</p>
+</div>
+</section>
+<!-- Devices & Recent Detections Section -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Child Devices List -->
+<div class="space-y-6">
+<h2 class="text-xl font-bold text-primary px-2">Monitored Devices</h2>
+<div class="bg-surface-container-low rounded-lg p-2 space-y-2">
+<!-- Device Item -->
+<div class="bg-surface-container-lowest p-5 rounded-xl flex items-center justify-between shadow-sm border border-transparent hover:border-outline-variant transition-colors">
+<div class="flex items-center gap-4">
+<div class="bg-secondary-container p-3 rounded-xl text-primary">
+<span class="material-symbols-outlined" data-icon="smartphone">smartphone</span>
+</div>
+<div>
+<h3 class="font-bold text-on-surface">Leo's iPhone 13</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="text-[10px] font-bold uppercase tracking-wider text-secondary">Online</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="text-right">
+<div class="text-sm font-bold text-on-surface">88%</div>
+<div class="text-[10px] font-bold uppercase text-secondary">Battery</div>
+</div>
+<span class="material-symbols-outlined text-tertiary-container" data-icon="battery_5_bar">battery_5_bar</span>
+</div>
+</div>
+<!-- Device Item -->
+<div class="bg-surface-container-lowest p-5 rounded-xl flex items-center justify-between shadow-sm border border-transparent hover:border-outline-variant transition-colors">
+<div class="flex items-center gap-4">
+<div class="bg-secondary-container p-3 rounded-xl text-primary opacity-60">
+<span class="material-symbols-outlined" data-icon="tablet_mac">tablet_mac</span>
+</div>
+<div>
+<h3 class="font-bold text-on-surface opacity-60">Sarah's iPad</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+<span class="text-[10px] font-bold uppercase tracking-wider text-secondary">Offline</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-3 opacity-60">
+<div class="text-right">
+<div class="text-sm font-bold text-on-surface">12%</div>
+<div class="text-[10px] font-bold uppercase text-secondary">Battery</div>
+</div>
+<span class="material-symbols-outlined text-error" data-icon="battery_alert">battery_alert</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Detections -->
+<div class="space-y-6">
+<div class="flex justify-between items-end px-2">
+<h2 class="text-xl font-bold text-primary">Recent Detections</h2>
+<button class="text-[10px] font-bold uppercase tracking-widest text-secondary hover:text-primary transition-colors">View All</button>
+</div>
+<div class="grid grid-cols-1 gap-4">
+<!-- Detection Card -->
+<div class="bg-surface-container rounded-xl p-5 flex items-start gap-4">
+<div class="bg-error-container text-on-error-container p-3 rounded-xl">
+<span class="material-symbols-outlined" data-icon="warning" data-weight="fill" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-bold text-on-surface">Raised Voices Detected</h3>
+<span class="text-[10px] font-bold text-secondary">2m ago</span>
+</div>
+<p class="text-sm text-on-surface-variant leading-relaxed">System identified aggressive acoustic patterns. Audio clip archived for review.</p>
+<div class="mt-4 flex gap-2">
+<button class="bg-surface-container-lowest text-primary py-2 px-4 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white">Listen</button>
+<button class="bg-surface-container-lowest text-primary py-2 px-4 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white">Dismiss</button>
+</div>
+</div>
+</div>
+<!-- Detection Card -->
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl z-50 rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.03)] md:hidden">
+<a class="flex flex-col items-center justify-center bg-teal-100 dark:bg-teal-900/40 text-teal-900 dark:text-teal-50 rounded-[16px] px-5 py-2 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard" data-weight="fill" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="text-[10px] font-bold uppercase tracking-widest font-['Manrope'] mt-1">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-teal-700/50 dark:text-teal-500/50 px-5 py-2 hover:text-teal-800 dark:hover:text-teal-200 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="notifications_active">notifications_active</span>
+<span class="text-[10px] font-bold uppercase tracking-widest font-['Manrope'] mt-1">Alerts</span>
+</a>
+<a class="flex flex-col items-center justify-center text-teal-700/50 dark:text-teal-500/50 px-5 py-2 hover:text-teal-800 dark:hover:text-teal-200 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="text-[10px] font-bold uppercase tracking-widest font-['Manrope'] mt-1">Familiar</span>
+</a>
+<a class="flex flex-col items-center justify-center text-teal-700/50 dark:text-teal-500/50 px-5 py-2 hover:text-teal-800 dark:hover:text-teal-200 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-[10px] font-bold uppercase tracking-widest font-['Manrope'] mt-1">Settings</span>
+</a>
+</nav>
+</body></html>

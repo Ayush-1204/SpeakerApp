@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SafeEar Settings | Teal Sentinel</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#334b4f",
+                        "surface-bright": "#f6fafa",
+                        "secondary-container": "#cde7ed",
+                        "tertiary-fixed": "#9df898",
+                        "on-secondary-container": "#50686d",
+                        "on-primary-container": "#95d6e4",
+                        "surface-dim": "#d7dbdb",
+                        "surface": "#f6fafa",
+                        "primary-fixed": "#acedfb",
+                        "on-primary-fixed-variant": "#004e59",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface-variant": "#3f4949",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#005312",
+                        "inverse-primary": "#90d1df",
+                        "on-tertiary": "#ffffff",
+                        "inverse-on-surface": "#edf1f1",
+                        "surface-tint": "#206773",
+                        "on-tertiary-fixed": "#002204",
+                        "surface-container-low": "#f0f4f4",
+                        "primary-fixed-dim": "#90d1df",
+                        "on-secondary-fixed": "#051f23",
+                        "surface-container-highest": "#dfe3e3",
+                        "inverse-surface": "#2c3132",
+                        "secondary-fixed-dim": "#b1cbd1",
+                        "on-background": "#181c1d",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#e5e9e9",
+                        "tertiary-fixed-dim": "#82db7e",
+                        "surface-variant": "#dfe3e3",
+                        "on-primary-fixed": "#001f25",
+                        "on-error": "#ffffff",
+                        "outline-variant": "#bec8c9",
+                        "on-primary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "outline": "#6f7979",
+                        "on-surface": "#181c1d",
+                        "surface-container": "#ebefef",
+                        "secondary-fixed": "#cde7ed",
+                        "secondary": "#4a6267",
+                        "primary": "#004650",
+                        "tertiary": "#004a0f",
+                        "on-tertiary-container": "#88e083",
+                        "tertiary-container": "#006518",
+                        "primary-container": "#135f6b",
+                        "background": "#f6fafa"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        h1, h2, h3, .brand-font {
+            font-family: 'Manrope', sans-serif;
+        }
+        .custom-toggle:checked + .toggle-dot {
+            transform: translateX(100%);
+            background-color: #ffffff;
+        }
+        .custom-toggle:checked ~ .toggle-bg {
+            background-color: #004650;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- Top Navigation Bar -->
+<nav class="fixed top-0 w-full z-50 bg-cyan-50/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-[0_8px_24px_rgba(0,0,0,0.02)] flex justify-between items-center px-6 h-16 w-full">
+<div class="flex items-center gap-3">
+<span class="text-xl font-extrabold text-teal-900 dark:text-teal-50 tracking-tight brand-font">Teal Sentinel</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-teal-700/60 dark:text-teal-400/60 hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors p-2 rounded-full active:scale-95 duration-200">
+                notifications
+            </button>
+<div class="h-8 w-8 rounded-full overflow-hidden bg-surface-container-highest">
+<img alt="User profile" data-alt="close-up portrait of a professional man with a kind expression and neat hair against a soft blue studio background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNd_3uCSNN5PmZ_WbPw3m35YFMWge4eC1-B5XoCVDx-qBJtDmHogTlyQ1XTluRgp5yC5oS3N6wGG0gG1zLNNCpQlKffIxd-zs7s182uNT3IP_aJESuAj6hbsLAj0mU3D2nFSuwKTx5M7NrBL_kNbRJmTjyJWy2IggqSTWqgA3hv1I8Q5Kwydtpz4etk_ZVsjW2wQAxsOsVxaytors1dyQiVfSkpeojxi01Ust_nyvncMlS_p49O27DgXgSHRwxM_MWKZflhl_VEvyL"/>
+</div>
+</div>
+</nav>
+<main class="max-w-2xl mx-auto px-6 pt-24 space-y-8">
+<!-- Header -->
+<header class="space-y-1">
+<div class="text-[10px] font-bold uppercase tracking-widest text-primary font-headline">App Settings</div>
+<h1 class="text-4xl font-extrabold tracking-tight text-on-surface">Preferences</h1>
+</header>
+<!-- Notification Section -->
+<section class="space-y-4">
+<h2 class="text-xl font-bold tracking-tight px-1">Notifications</h2>
+<div class="bg-surface-container-lowest rounded-lg p-1 shadow-[0_8px_24px_rgba(0,0,0,0.02)]">
+<div class="flex items-center justify-between p-4 hover:bg-surface-container-low transition-colors rounded-t-lg">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary bg-primary-container/20 p-2 rounded-xl">notifications_active</span>
+<div>
+<p class="font-semibold text-on-surface">Acoustic Alerts</p>
+<p class="text-xs text-on-surface-variant">Instant push for high-decibel events</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer custom-toggle" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-highest rounded-full peer-checked:bg-primary transition-colors"></div>
+<div class="absolute left-[2px] top-[2px] bg-white w-5 h-5 rounded-full transition-transform peer-checked:translate-x-full shadow-sm"></div>
+</label>
+</div>
+<div class="h-px bg-surface-container mx-4"></div>
+<div class="flex items-center justify-between p-4 hover:bg-surface-container-low transition-colors rounded-b-lg">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary bg-primary-container/20 p-2 rounded-xl">schedule</span>
+<div>
+<p class="font-semibold text-on-surface">Daily Summary</p>
+<p class="text-xs text-on-surface-variant">Morning report of nocturnal activity</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer custom-toggle" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-highest rounded-full peer-checked:bg-primary transition-colors"></div>
+<div class="absolute left-[2px] top-[2px] bg-white w-5 h-5 rounded-full transition-transform peer-checked:translate-x-full shadow-sm"></div>
+</label>
+</div>
+</div>
+</section>
+<!-- Permission Status Section -->
+<section class="space-y-4">
+<h2 class="text-xl font-bold tracking-tight px-1">Permissions</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+<div class="bg-surface-container-lowest p-4 rounded-lg flex flex-col items-center text-center space-y-2">
+<span class="material-symbols-outlined text-tertiary-container" style="font-variation-settings: 'FILL' 1;">mic</span>
+<span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Microphone</span>
+<span class="px-2 py-0.5 bg-tertiary-fixed text-[10px] font-bold rounded-full text-on-tertiary-fixed-variant">ACTIVE</span>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-lg flex flex-col items-center text-center space-y-2">
+<span class="material-symbols-outlined text-tertiary-container" style="font-variation-settings: 'FILL' 1;">location_on</span>
+<span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Location</span>
+<span class="px-2 py-0.5 bg-tertiary-fixed text-[10px] font-bold rounded-full text-on-tertiary-fixed-variant">ACTIVE</span>
+</div>
+</div>
+</section>
+<!-- Privacy & Data -->
+<section class="space-y-4">
+<h2 class="text-xl font-bold tracking-tight px-1">Privacy &amp; Data</h2>
+<div class="bg-primary-container text-on-primary-container p-6 rounded-lg relative overflow-hidden">
+<div class="relative z-10 space-y-3">
+<h3 class="text-lg font-bold">Retention Summary</h3>
+<p class="text-sm opacity-90 leading-relaxed">
+                        Acoustic data is encrypted locally. High-decibel triggers are stored for 30 days before automatic deletion. No raw audio is uploaded to the cloud without explicit emergency bypass.
+                    </p>
+<button class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest bg-on-primary-container text-primary-container px-4 py-2 rounded-full hover:opacity-90 transition-opacity">
+                        Request Data Export
+                        <span class="material-symbols-outlined text-sm">download</span>
+</button>
+</div>
+<div class="absolute -right-8 -top-8 w-32 h-32 bg-on-primary-container/10 rounded-full blur-3xl"></div>
+</div>
+</section>
+<!-- About Section -->
+<section class="space-y-4">
+<h2 class="text-xl font-bold tracking-tight px-1">About SafeEar</h2>
+<div class="bg-surface-container-low rounded-lg divide-y divide-surface-container-highest">
+<div class="p-4 flex justify-between items-center">
+<span class="text-sm font-medium text-on-surface-variant">Version</span>
+<span class="text-sm font-bold text-on-surface">v2.4.12-pro</span>
+</div>
+<div class="p-4 flex justify-between items-center">
+<span class="text-sm font-medium text-on-surface-variant">Build Identity</span>
+<span class="text-[10px] font-mono bg-surface-container p-1 rounded">SENTINEL-AX-992</span>
+</div>
+<div class="p-4 flex justify-between items-center">
+<span class="text-sm font-medium text-on-surface-variant">Legal</span>
+<button class="material-symbols-outlined text-on-surface-variant">chevron_right</button>
+</div>
+</div>
+</section>
+<!-- Logout Action -->
+<section class="pt-4 pb-12">
+<button class="w-full py-4 bg-surface-container-lowest border-2 border-error/10 text-error font-bold rounded-lg hover:bg-error-container transition-colors active:scale-95 duration-200 flex justify-center items-center gap-3">
+<span class="material-symbols-outlined">logout</span>
+                Logout
+            </button>
+<p class="text-center text-[10px] text-on-surface-variant/40 mt-8 font-bold tracking-widest uppercase">© 2024 Teal Sentinel Domestic Monitoring</p>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-50 rounded-t-3xl">
+<a class="flex flex-col items-center justify-center text-teal-700/50 dark:text-teal-500/50 px-5 py-2 hover:text-teal-800 dark:hover:text-teal-200 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-bold uppercase tracking-widest font-['Manrope'] mt-1">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-teal-700/50 dark:text-teal-500/50 px-5 py-2 hover:text-teal-800 dark:hover:text-teal-200 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">notifications_active</span>
+<span class="text-[10px] font-bold uppercase tracking-widest font-['Manrope'] mt-1">Alerts</span>
+</a>
+<a class="flex flex-col items-center justify-center text-teal-700/50 dark:text-teal-500/50 px-5 py-2 hover:text-teal-800 dark:hover:text-teal-200 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="text-[10px] font-bold uppercase tracking-widest font-['Manrope'] mt-1">Familiar</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-teal-100 dark:bg-teal-900/40 text-teal-900 dark:text-teal-50 rounded-[16px] px-5 py-2 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] font-bold uppercase tracking-widest font-['Manrope'] mt-1">Settings</span>
+</a>
+</nav>
+</body></html>

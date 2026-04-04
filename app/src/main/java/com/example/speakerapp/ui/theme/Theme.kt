@@ -5,10 +5,13 @@ import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 
 private val LightColors = lightColorScheme(
@@ -72,9 +75,25 @@ private val DarkColors = darkColorScheme(
 @Composable
 fun SpeakerAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val configuration = LocalConfiguration.current
+    val isCompact = configuration.screenWidthDp < 380 || configuration.fontScale > 1.1f
+
+    val adaptiveUi = AdaptiveUi(
+        isCompact = isCompact,
+        cornerSmall = if (isCompact) 8.dp else 10.dp,
+        cornerMedium = if (isCompact) 14.dp else 16.dp,
+        cornerLarge = if (isCompact) 20.dp else 24.dp,
+        cornerExtraLarge = if (isCompact) 26.dp else 30.dp,
+        horizontalScreenPadding = if (isCompact) 16.dp else 24.dp,
+        elementVerticalSpacing = if (isCompact) 12.dp else 16.dp,
+        navPillHeight = if (isCompact) 74.dp else 80.dp,
+        navIconBubbleWidth = if (isCompact) 48.dp else 56.dp,
+        navIconBubbleHeight = if (isCompact) 30.dp else 32.dp
+    )
+
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
@@ -89,13 +108,20 @@ fun SpeakerAppTheme(
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalAdaptiveUi provides adaptiveUi) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = speakerTypography(compact = adaptiveUi.isCompact),
+            shapes = Shapes(
+                small = androidx.compose.foundation.shape.RoundedCornerShape(adaptiveUi.cornerSmall),
+                medium = androidx.compose.foundation.shape.RoundedCornerShape(adaptiveUi.cornerMedium),
+                large = androidx.compose.foundation.shape.RoundedCornerShape(adaptiveUi.cornerLarge)
+            ),
+            content = content
+        )
+    }
 }

@@ -5,6 +5,8 @@ import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.media.audiofx.AcousticEchoCanceler
+import android.media.audiofx.NoiseSuppressor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -24,17 +26,58 @@ class WavRecorder @Inject constructor() {
 
     private var audioRecord: AudioRecord? = null
     private var isRecording = false
+    private var noiseSuppressor: NoiseSuppressor? = null
+    private var acousticEchoCanceler: AcousticEchoCanceler? = null
+
+    private val preferredAudioSources = intArrayOf(
+        MediaRecorder.AudioSource.VOICE_RECOGNITION,
+        MediaRecorder.AudioSource.VOICE_COMMUNICATION,
+        MediaRecorder.AudioSource.CAMCORDER,
+        MediaRecorder.AudioSource.MIC
+    )
+
+    private fun buildAudioRecord(): AudioRecord? {
+        for (source in preferredAudioSources) {
+            try {
+                val record = AudioRecord(
+                    source,
+                    sampleRate,
+                    channelConfig,
+                    audioFormat,
+                    bufferSize
+                )
+                if (record.state == AudioRecord.STATE_INITIALIZED) {
+                    attachAudioEffects(record)
+                    return record
+                }
+                record.release()
+            } catch (_: Exception) {
+                // Try next source.
+            }
+        }
+        return null
+    }
+
+    private fun attachAudioEffects(record: AudioRecord) {
+        val audioSessionId = record.audioSessionId
+
+        if (NoiseSuppressor.isAvailable()) {
+            runCatching {
+                noiseSuppressor = NoiseSuppressor.create(audioSessionId)?.apply { setEnabled(true) }
+            }
+        }
+
+        if (AcousticEchoCanceler.isAvailable()) {
+            runCatching {
+                acousticEchoCanceler = AcousticEchoCanceler.create(audioSessionId)?.apply { setEnabled(true) }
+            }
+        }
+    }
 
     @SuppressLint("MissingPermission")
     suspend fun recordChunk(context: Context, durationMs: Long): File? = withContext(Dispatchers.IO) {
         val file = File(context.cacheDir, "chunk_${System.currentTimeMillis()}.wav")
-        audioRecord = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
-            sampleRate,
-            channelConfig,
-            audioFormat,
-            bufferSize
-        )
+        audioRecord = buildAudioRecord()
 
         if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
             return@withContext null
@@ -56,6 +99,10 @@ class WavRecorder @Inject constructor() {
         }
 
         audioRecord?.stop()
+        noiseSuppressor?.release()
+        noiseSuppressor = null
+        acousticEchoCanceler?.release()
+        acousticEchoCanceler = null
         audioRecord?.release()
         audioRecord = null
         isRecording = false

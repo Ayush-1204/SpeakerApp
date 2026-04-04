@@ -1,69 +1,175 @@
 package com.example.speakerapp.features.detection.data
 
-import com.example.speakerapp.core.network.Resource
-import com.example.speakerapp.core.network.SafeEarApi
-import com.example.speakerapp.core.network.dto.DetectionResponse
-import com.example.speakerapp.core.network.dto.LocationRequest
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
+import com.example.speakerapp.network.ApiService
+import com.example.speakerapp.network.makeAudioPart
+import com.example.speakerapp.network.toTextBody
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import java.io.File
 import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
+sealed class DetectionResult<out T> {
+    data class Success<T>(val data: T) : DetectionResult<T>()
+    data class Error(val message: String, val code: Int? = null) : DetectionResult<Nothing>()
+    object Loading : DetectionResult<Nothing>()
+}
+
+data class DetectionResponse(
+    val status: String, // "warming_up", "no_hop", or "ok"
+    val decision: String?, // "familiar", "stranger_candidate", "uncertain", "hold"
+    val score: Double?,
+    val strangerStreak: Int?,
+    val thresholds: DetectionThresholds?,
+    val alertFired: Boolean?,
+    val alertId: String?
+)
+
+data class DetectionThresholds(
+    val tHigh: Double,
+    val tLow: Double
+)
+
 class DetectionRepository @Inject constructor(
-    private val api: SafeEarApi
+    private val apiService: ApiService
 ) {
-    suspend fun uploadChunk(
+
+    /**
+     * Upload audio chunk for detection/verification.
+     * Exact endpoint: POST /detect/chunk
+     * Fields: device_id (required), file (required), latitude/longitude (optional)
+     * Audio constraints: 16kHz mono, WAV format
+     * Role requirement: Callable only by child_device (403 if parent attempts)
+     * Status responses: "warming_up", "no_hop", "ok"
+     */
+    suspend fun uploadDetectionChunk(
         deviceId: String,
         audioFile: File,
         latitude: Double? = null,
-        longitude: Double? = null
-    ): Resource<DetectionResponse> {
-        return try {
-            val deviceIdPart = deviceId.toRequestBody("text/plain".toMediaTypeOrNull())
-            val requestFile = audioFile.asRequestBody("audio/wav".toMediaTypeOrNull())
-            val filePart = MultipartBody.Part.createFormData("file", audioFile.name, requestFile)
-            
-            val latPart = latitude?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
-            val lngPart = longitude?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
+        longitude: Double? = null,
+        batteryPercent: Int? = null
+    ): Flow<DetectionResult<DetectionResponse>> = flow {
+        emit(DetectionResult.Loading)
+        try {
+            val sampleRate = 16000
+            check(sampleRate == 16000) { "Audio must be 16kHz WAV" }
 
-            val response = api.uploadChunk(deviceIdPart, filePart, latPart, lngPart)
-            if (response.isSuccessful && response.body() != null) {
-                Resource.Success(response.body()!!)
+            val deviceIdPart = deviceId.toTextBody()
+            val latitudePart = latitude?.toString()?.toTextBody()
+            val longitudePart = longitude?.toString()?.toTextBody()
+            val batteryPart = batteryPercent?.toString()?.toTextBody()
+            val audioPart = makeAudioPart(audioFile, fieldName = "audio")
+
+            val response = apiService.detectChunk(
+                deviceId = deviceIdPart,
+                latitude = latitudePart,
+                longitude = longitudePart,
+                batteryPercent = batteryPart,
+                battery = batteryPart,
+                audio = audioPart,
+            )
+
+            if (response.isSuccessful) {
+                val body = response.body() ?: throw Exception("Empty response body")
+
+                val thresholds = if (body.thresholds != null) {
+                    DetectionThresholds(
+                        tHigh = body.thresholds.t_high,
+                        tLow = body.thresholds.t_low
+                    )
+                } else {
+                    null
+                }
+
+                emit(DetectionResult.Success(
+                    DetectionResponse(
+                        status = body.status,
+                        decision = body.decision,
+                        score = body.score,
+                        strangerStreak = body.stranger_streak,
+                        thresholds = thresholds,
+                        alertFired = body.alert_fired,
+                        alertId = body.alert_id
+                    )
+                ))
             } else {
-                Resource.Error(response.message() ?: "Chunk upload failed")
+                val errorDetail = response.errorBody()?.string() ?: "Detection upload failed"
+                // Handle specific error codes
+                val message = when (response.code()) {
+                    403 -> "Only child devices can upload audio chunks"
+                    400 -> if (errorDetail.contains("audio_chunk_must_be_16khz")) {
+                        "Audio must be 16kHz"
+                    } else {
+                        errorDetail
+                    }
+                    else -> errorDetail
+                }
+                emit(DetectionResult.Error(
+                    message = message,
+                    code = response.code()
+                ))
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Unknown error")
+            emit(DetectionResult.Error(message = e.message ?: "Network error"))
         }
     }
 
-    suspend fun updateLocation(deviceId: String, lat: Double, lng: Double): Resource<Unit> {
-        return try {
-            val response = api.updateLocation(LocationRequest(deviceId, lat, lng))
+    /**
+     * Update device location.
+     * Exact endpoint: POST /detect/location
+     */
+    suspend fun updateLocation(
+        deviceId: String,
+        latitude: Double,
+        longitude: Double,
+        batteryPercent: Int? = null
+    ): Flow<DetectionResult<Unit>> = flow {
+        emit(DetectionResult.Loading)
+        try {
+            val locationRequest = com.example.speakerapp.network.dto.LocationUpdateRequest(
+                device_id = deviceId,
+                latitude = latitude,
+                longitude = longitude,
+                battery_percent = batteryPercent,
+                battery = batteryPercent
+            )
+
+            val response = apiService.sendLocation(locationRequest)
+
             if (response.isSuccessful) {
-                Resource.Success(Unit)
+                emit(DetectionResult.Success(Unit))
             } else {
-                Resource.Error(response.message() ?: "Location update failed")
+                val errorDetail = response.errorBody()?.string() ?: "Location update failed"
+                emit(DetectionResult.Error(
+                    message = errorDetail,
+                    code = response.code()
+                ))
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Unknown error")
+            emit(DetectionResult.Error(message = e.message ?: "Network error"))
         }
     }
 
-    suspend fun endSession(deviceId: String): Resource<Unit> {
-        return try {
-            val response = api.endSession(deviceId)
+    /**
+     * End detection session.
+     * Exact endpoint: DELETE /detect/session?device_id=<id>
+     */
+    suspend fun endDetectionSession(deviceId: String): Flow<DetectionResult<Unit>> = flow {
+        emit(DetectionResult.Loading)
+        try {
+            val response = apiService.deleteDetectionSession(deviceId = deviceId)
+
             if (response.isSuccessful) {
-                Resource.Success(Unit)
+                emit(DetectionResult.Success(Unit))
             } else {
-                Resource.Error(response.message() ?: "Failed to end session")
+                val errorDetail = response.errorBody()?.string() ?: "Failed to end session"
+                emit(DetectionResult.Error(
+                    message = errorDetail,
+                    code = response.code()
+                ))
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Unknown error")
+            emit(DetectionResult.Error(message = e.message ?: "Network error"))
         }
     }
 }
+

@@ -1,0 +1,311 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>SafeEar Child Monitor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#334b4f",
+                        "surface-bright": "#f6fafa",
+                        "secondary-container": "#cde7ed",
+                        "tertiary-fixed": "#9df898",
+                        "on-secondary-container": "#50686d",
+                        "on-primary-container": "#95d6e4",
+                        "surface-dim": "#d7dbdb",
+                        "surface": "#f6fafa",
+                        "primary-fixed": "#acedfb",
+                        "on-primary-fixed-variant": "#004e59",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface-variant": "#3f4949",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#005312",
+                        "inverse-primary": "#90d1df",
+                        "on-tertiary": "#ffffff",
+                        "inverse-on-surface": "#edf1f1",
+                        "surface-tint": "#206773",
+                        "on-tertiary-fixed": "#002204",
+                        "surface-container-low": "#f0f4f4",
+                        "primary-fixed-dim": "#90d1df",
+                        "on-secondary-fixed": "#051f23",
+                        "surface-container-highest": "#dfe3e3",
+                        "inverse-surface": "#2c3132",
+                        "secondary-fixed-dim": "#b1cbd1",
+                        "on-background": "#181c1d",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#e5e9e9",
+                        "tertiary-fixed-dim": "#82db7e",
+                        "surface-variant": "#dfe3e3",
+                        "on-primary-fixed": "#001f25",
+                        "on-error": "#ffffff",
+                        "outline-variant": "#bec8c9",
+                        "on-primary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "outline": "#6f7979",
+                        "on-surface": "#181c1d",
+                        "surface-container": "#ebefef",
+                        "secondary-fixed": "#cde7ed",
+                        "secondary": "#4a6267",
+                        "primary": "#004650",
+                        "tertiary": "#004a0f",
+                        "on-tertiary-container": "#88e083",
+                        "tertiary-container": "#006518",
+                        "primary-container": "#135f6b",
+                        "background": "#f6fafa"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .pulse-animation {
+            box-shadow: 0 0 0 0 rgba(0, 70, 80, 0.4);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 70, 80, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(0, 70, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 70, 80, 0); }
+        }
+        .active-ring {
+            box-shadow: 0 0 0 10px rgba(0, 70, 80, 0.05);
+        }
+    </style>
+<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}[type='text'],input:where(:not([type])),[type='email'],[type='url'],[type='password'],[type='number'],[type='date'],[type='datetime-local'],[type='month'],[type='search'],[type='tel'],[type='time'],[type='week'],[multiple],textarea,select{-webkit-appearance:none;appearance:none;background-color:#fff;border-color:#6b7280;border-width:1px;border-radius:0px;padding-top:0.5rem;padding-right:0.75rem;padding-bottom:0.5rem;padding-left:0.75rem;font-size:1rem;line-height:1.5rem;--tw-shadow:0 0 #0000;}[type='text']:focus, input:where(:not([type])):focus, [type='email']:focus, [type='url']:focus, [type='password']:focus, [type='number']:focus, [type='date']:focus, [type='datetime-local']:focus, [type='month']:focus, [type='search']:focus, [type='tel']:focus, [type='time']:focus, [type='week']:focus, [multiple]:focus, textarea:focus, select:focus{outline:2px solid transparent;outline-offset:2px;--tw-ring-inset:var(--tw-empty,/*!*/ /*!*/);--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:#2563eb;--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);border-color:#2563eb}input::placeholder,textarea::placeholder{color:#6b7280;opacity:1}::-webkit-datetime-edit-fields-wrapper{padding:0}::-webkit-date-and-time-value{min-height:1.5em;text-align:inherit}::-webkit-datetime-edit{display:inline-flex}::-webkit-datetime-edit,::-webkit-datetime-edit-year-field,::-webkit-datetime-edit-month-field,::-webkit-datetime-edit-day-field,::-webkit-datetime-edit-hour-field,::-webkit-datetime-edit-minute-field,::-webkit-datetime-edit-second-field,::-webkit-datetime-edit-millisecond-field,::-webkit-datetime-edit-meridiem-field{padding-top:0;padding-bottom:0}select{background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");background-position:right 0.5rem center;background-repeat:no-repeat;background-size:1.5em 1.5em;padding-right:2.5rem;print-color-adjust:exact}[multiple],[size]:where(select:not([size="1"])){background-image:initial;background-position:initial;background-repeat:unset;background-size:initial;padding-right:0.75rem;print-color-adjust:unset}[type='checkbox'],[type='radio']{-webkit-appearance:none;appearance:none;padding:0;print-color-adjust:exact;display:inline-block;vertical-align:middle;background-origin:border-box;-webkit-user-select:none;user-select:none;flex-shrink:0;height:1rem;width:1rem;color:#2563eb;background-color:#fff;border-color:#6b7280;border-width:1px;--tw-shadow:0 0 #0000}[type='checkbox']{border-radius:0px}[type='radio']{border-radius:100%}[type='checkbox']:focus,[type='radio']:focus{outline:2px solid transparent;outline-offset:2px;--tw-ring-inset:var(--tw-empty,/*!*/ /*!*/);--tw-ring-offset-width:2px;--tw-ring-offset-color:#fff;--tw-ring-color:#2563eb;--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)}[type='checkbox']:checked,[type='radio']:checked{border-color:transparent;background-color:currentColor;background-size:100% 100%;background-position:center;background-repeat:no-repeat}[type='checkbox']:checked{background-image:url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");}@media (forced-colors: active) {[type='checkbox']:checked{-webkit-appearance:auto;appearance:auto}}[type='radio']:checked{background-image:url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3ccircle cx='8' cy='8' r='3'/%3e%3c/svg%3e");}@media (forced-colors: active) {[type='radio']:checked{-webkit-appearance:auto;appearance:auto}}[type='checkbox']:checked:hover,[type='checkbox']:checked:focus,[type='radio']:checked:hover,[type='radio']:checked:focus{border-color:transparent;background-color:currentColor}[type='checkbox']:indeterminate{background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 16 16'%3e%3cpath stroke='white' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 8h8'/%3e%3c/svg%3e");border-color:transparent;background-color:currentColor;background-size:100% 100%;background-position:center;background-repeat:no-repeat;}@media (forced-colors: active) {[type='checkbox']:indeterminate{-webkit-appearance:auto;appearance:auto}}[type='checkbox']:indeterminate:hover,[type='checkbox']:indeterminate:focus{border-color:transparent;background-color:currentColor}[type='file']{background:unset;border-color:inherit;border-width:0;border-radius:0;padding:0;font-size:unset;line-height:inherit}[type='file']:focus{outline:1px solid ButtonText;outline:1px auto -webkit-focus-ring-color}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.inset-0{inset:0px}.bottom-0{bottom:0px}.left-0{left:0px}.right-0{right:0px}.top-0{top:0px}.z-50{z-index:50}.mx-auto{margin-left:auto;margin-right:auto}.mb-1{margin-bottom:0.25rem}.mb-10{margin-bottom:2.5rem}.mb-12{margin-bottom:3rem}.mb-2{margin-bottom:0.5rem}.mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}.mb-8{margin-bottom:2rem}.mr-1\.5{margin-right:0.375rem}.mr-2{margin-right:0.5rem}.mt-1{margin-top:0.25rem}.mt-12{margin-top:3rem}.mt-2{margin-top:0.5rem}.mt-6{margin-top:1.5rem}.mt-8{margin-top:2rem}.block{display:block}.flex{display:flex}.inline-flex{display:inline-flex}.grid{display:grid}.h-1{height:0.25rem}.h-10{height:2.5rem}.h-12{height:3rem}.h-16{height:4rem}.h-2{height:0.5rem}.h-4{height:1rem}.h-48{height:12rem}.h-6{height:1.5rem}.h-8{height:2rem}.h-full{height:100%}.min-h-\[884px\]{min-height:884px}.w-1{width:0.25rem}.w-1\.5{width:0.375rem}.w-10{width:2.5rem}.w-12{width:3rem}.w-2{width:0.5rem}.w-48{width:12rem}.w-8{width:2rem}.w-\[75\%\]{width:75%}.w-full{width:100%}.min-w-\[600px\]{min-width:600px}.max-w-5xl{max-width:64rem}.max-w-sm{max-width:24rem}.flex-grow{flex-grow:1}.border-collapse{border-collapse:collapse}@keyframes pulse{50%{opacity:.5}}.animate-pulse{animation:pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-end{align-items:flex-end}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.justify-around{justify-content:space-around}.gap-1{gap:0.25rem}.gap-2{gap:0.5rem}.gap-3{gap:0.75rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.divide-y > :not([hidden]) ~ :not([hidden]){--tw-divide-y-reverse:0;border-top-width:calc(1px * calc(1 - var(--tw-divide-y-reverse)));border-bottom-width:calc(1px * var(--tw-divide-y-reverse))}.divide-surface-container-low > :not([hidden]) ~ :not([hidden]){--tw-divide-opacity:1;border-color:rgb(240 244 244 / var(--tw-divide-opacity, 1))}.overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}.rounded{border-radius:1rem}.rounded-\[16px\]{border-radius:16px}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:2rem}.rounded-xl{border-radius:3rem}.rounded-t-3xl{border-top-left-radius:1.5rem;border-top-right-radius:1.5rem}.border-2{border-width:2px}.border-surface-container-highest{--tw-border-opacity:1;border-color:rgb(223 227 227 / var(--tw-border-opacity, 1))}.bg-amber-100{--tw-bg-opacity:1;background-color:rgb(254 243 199 / var(--tw-bg-opacity, 1))}.bg-amber-600{--tw-bg-opacity:1;background-color:rgb(217 119 6 / var(--tw-bg-opacity, 1))}.bg-background{--tw-bg-opacity:1;background-color:rgb(246 250 250 / var(--tw-bg-opacity, 1))}.bg-cyan-50\/80{background-color:rgb(236 254 255 / 0.8)}.bg-error-container{--tw-bg-opacity:1;background-color:rgb(255 218 214 / var(--tw-bg-opacity, 1))}.bg-green-100{--tw-bg-opacity:1;background-color:rgb(220 252 231 / var(--tw-bg-opacity, 1))}.bg-green-600{--tw-bg-opacity:1;background-color:rgb(22 163 74 / var(--tw-bg-opacity, 1))}.bg-primary{--tw-bg-opacity:1;background-color:rgb(0 70 80 / var(--tw-bg-opacity, 1))}.bg-primary-container{--tw-bg-opacity:1;background-color:rgb(19 95 107 / var(--tw-bg-opacity, 1))}.bg-primary\/5{background-color:rgb(0 70 80 / 0.05)}.bg-surface-container{--tw-bg-opacity:1;background-color:rgb(235 239 239 / var(--tw-bg-opacity, 1))}.bg-surface-container-high{--tw-bg-opacity:1;background-color:rgb(229 233 233 / var(--tw-bg-opacity, 1))}.bg-surface-container-low{--tw-bg-opacity:1;background-color:rgb(240 244 244 / var(--tw-bg-opacity, 1))}.bg-surface-container-lowest{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-teal-100{--tw-bg-opacity:1;background-color:rgb(204 251 241 / var(--tw-bg-opacity, 1))}.bg-tertiary{--tw-bg-opacity:1;background-color:rgb(0 74 15 / var(--tw-bg-opacity, 1))}.bg-tertiary-fixed{--tw-bg-opacity:1;background-color:rgb(157 248 152 / var(--tw-bg-opacity, 1))}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-white\/10{background-color:rgb(255 255 255 / 0.1)}.bg-white\/20{background-color:rgb(255 255 255 / 0.2)}.bg-white\/80{background-color:rgb(255 255 255 / 0.8)}.p-2{padding:0.5rem}.p-6{padding:1.5rem}.p-8{padding:2rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-4{padding-left:1rem;padding-right:1rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.px-8{padding-left:2rem;padding-right:2rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-4{padding-top:1rem;padding-bottom:1rem}.pb-32{padding-bottom:8rem}.pb-6{padding-bottom:1.5rem}.pt-24{padding-top:6rem}.pt-3{padding-top:0.75rem}.text-left{text-align:left}.text-center{text-align:center}.font-\[\'Manrope\'\]{font-family:'Manrope'}.font-body{font-family:Inter}.font-headline{font-family:Manrope}.font-mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-5xl{font-size:3rem;line-height:1}.text-6xl{font-size:3.75rem;line-height:1}.text-\[10px\]{font-size:10px}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.font-bold{font-weight:700}.font-extrabold{font-weight:800}.font-medium{font-weight:500}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.leading-none{line-height:1}.tracking-tight{letter-spacing:-0.025em}.tracking-tighter{letter-spacing:-0.05em}.tracking-wide{letter-spacing:0.025em}.tracking-widest{letter-spacing:0.1em}.text-amber-600{--tw-text-opacity:1;color:rgb(217 119 6 / var(--tw-text-opacity, 1))}.text-amber-800{--tw-text-opacity:1;color:rgb(146 64 14 / var(--tw-text-opacity, 1))}.text-green-800{--tw-text-opacity:1;color:rgb(22 101 52 / var(--tw-text-opacity, 1))}.text-on-error-container{--tw-text-opacity:1;color:rgb(147 0 10 / var(--tw-text-opacity, 1))}.text-on-primary-container{--tw-text-opacity:1;color:rgb(149 214 228 / var(--tw-text-opacity, 1))}.text-on-surface{--tw-text-opacity:1;color:rgb(24 28 29 / var(--tw-text-opacity, 1))}.text-on-surface-variant{--tw-text-opacity:1;color:rgb(63 73 73 / var(--tw-text-opacity, 1))}.text-on-tertiary-fixed-variant{--tw-text-opacity:1;color:rgb(0 83 18 / var(--tw-text-opacity, 1))}.text-outline{--tw-text-opacity:1;color:rgb(111 121 121 / var(--tw-text-opacity, 1))}.text-primary{--tw-text-opacity:1;color:rgb(0 70 80 / var(--tw-text-opacity, 1))}.text-secondary{--tw-text-opacity:1;color:rgb(74 98 103 / var(--tw-text-opacity, 1))}.text-teal-600{--tw-text-opacity:1;color:rgb(13 148 136 / var(--tw-text-opacity, 1))}.text-teal-700{--tw-text-opacity:1;color:rgb(15 118 110 / var(--tw-text-opacity, 1))}.text-teal-700\/50{color:rgb(15 118 110 / 0.5)}.text-teal-900{--tw-text-opacity:1;color:rgb(19 78 74 / var(--tw-text-opacity, 1))}.text-tertiary{--tw-text-opacity:1;color:rgb(0 74 15 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.opacity-80{opacity:0.8}.shadow-\[0_-4px_20px_rgba\(0\2c 0\2c 0\2c 0\.03\)\]{--tw-shadow:0 -4px 20px rgba(0,0,0,0.03);--tw-shadow-colored:0 -4px 20px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-\[0_8px_24px_rgba\(0\2c 0\2c 0\2c 0\.02\)\]{--tw-shadow:0 8px 24px rgba(0,0,0,0.02);--tw-shadow-colored:0 8px 24px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.backdrop-blur-xl{--tw-backdrop-blur:blur(24px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition-colors{transition-property:color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-transform{transition-property:transform;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-200{transition-duration:200ms}.hover\:bg-teal-50:hover{--tw-bg-opacity:1;background-color:rgb(240 253 250 / var(--tw-bg-opacity, 1))}.hover\:bg-white\/20:hover{background-color:rgb(255 255 255 / 0.2)}.hover\:text-primary:hover{--tw-text-opacity:1;color:rgb(0 70 80 / var(--tw-text-opacity, 1))}.hover\:text-teal-800:hover{--tw-text-opacity:1;color:rgb(17 94 89 / var(--tw-text-opacity, 1))}.active\:scale-90:active{--tw-scale-x:.9;--tw-scale-y:.9;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.active\:scale-95:active{--tw-scale-x:.95;--tw-scale-y:.95;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.dark\:bg-slate-900\/80:is(.dark *){background-color:rgb(15 23 42 / 0.8)}.dark\:bg-slate-950\/80:is(.dark *){background-color:rgb(2 6 23 / 0.8)}.dark\:bg-teal-900\/40:is(.dark *){background-color:rgb(19 78 74 / 0.4)}.dark\:text-teal-400:is(.dark *){--tw-text-opacity:1;color:rgb(45 212 191 / var(--tw-text-opacity, 1))}.dark\:text-teal-50:is(.dark *){--tw-text-opacity:1;color:rgb(240 253 250 / var(--tw-text-opacity, 1))}.dark\:text-teal-500\/50:is(.dark *){color:rgb(20 184 166 / 0.5)}.dark\:hover\:bg-teal-900\/30:hover:is(.dark *){background-color:rgb(19 78 74 / 0.3)}.dark\:hover\:text-teal-200:hover:is(.dark *){--tw-text-opacity:1;color:rgb(153 246 228 / var(--tw-text-opacity, 1))}@media (min-width: 768px){.md\:col-span-5{grid-column:span 5 / span 5}.md\:col-span-7{grid-column:span 7 / span 7}.md\:grid-cols-12{grid-template-columns:repeat(12, minmax(0, 1fr))}.md\:flex-row{flex-direction:row}.md\:items-end{align-items:flex-end}.md\:justify-end{justify-content:flex-end}.md\:text-left{text-align:left}.md\:text-5xl{font-size:3rem;line-height:1}}@media (min-width: 1024px){.lg\:col-span-4{grid-column:span 4 / span 4}.lg\:col-span-8{grid-column:span 8 / span 8}}</style></head>
+<body class="bg-background font-body text-on-surface min-h-[884px]" data-stitch-vh="min-h-[884px]===min-h-screen" data-mode="connect">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-cyan-50/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-[0_8px_24px_rgba(0,0,0,0.02)]">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-lg">shield_with_heart</span>
+</div>
+<span class="text-xl font-extrabold text-teal-900 dark:text-teal-50 tracking-tight font-['Manrope']">SafeEar</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-teal-700 dark:text-teal-400">notifications</span>
+</button>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-surface-container-highest">
+<img alt="User profile" data-alt="Close up portrait of a young professional father looking kind and focused, soft daylight, minimalist background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBj_ryYmB2wGh1Y2N3axBWiqxNiUsSovI3PJaMIrzYDFPR0vXb8EpWFsEBDy0QjLb_AJ1dbKbf9mQYkivgPRSeiUQhWLLK6QSSaP7xEHNE492DZRbLuoSmIqznnuvo_wuBRdG8qpNfAlbKnbs3vbbkTrb0TjTNe33rPGo3s3wQz3bTHRd60FB-r_PNIoStTpNqZA0DSWXAMzcnJEb-3f3xK6ue6Dn6UMuzZgJYt_RZ0cVbB4Nvz8bWVa5B9oGohHasVRYun5xpg-3OS">
+</div>
+</div>
+</nav>
+<main class="pt-24 pb-32 px-6 max-w-5xl mx-auto">
+<!-- Dashboard Header & Status -->
+<header class="mb-10 text-center md:text-left">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<span class="text-[10px] font-bold uppercase tracking-widest text-secondary font-headline mb-2 block">Monitoring: Leo's Room</span>
+<h1 class="text-3xl md:text-5xl font-extrabold font-headline tracking-tighter text-primary leading-none">SafeEar Active</h1>
+</div>
+<div class="flex flex-wrap justify-center md:justify-end gap-3">
+<div class="bg-surface-container-lowest px-4 py-3 rounded-lg flex items-center gap-3 shadow-[0_8px_24px_rgba(0,0,0,0.02)]">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">battery_very_low</span>
+<div>
+<p class="text-[10px] font-bold uppercase tracking-widest text-outline">Battery</p>
+<p class="text-sm font-bold text-on-surface">18%</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest px-4 py-3 rounded-lg flex items-center gap-3 shadow-[0_8px_24px_rgba(0,0,0,0.02)]">
+<span class="material-symbols-outlined text-tertiary">speed</span>
+<div>
+<p class="text-[10px] font-bold uppercase tracking-widest text-outline">Latency</p>
+<p class="text-sm font-bold text-on-surface">14ms</p>
+</div>
+</div>
+</div>
+</div>
+</header>
+<!-- Central Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-12">
+<!-- Hero Microphone Section -->
+<div class="md:col-span-7 lg:col-span-8 bg-surface-container-lowest rounded-xl p-8 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.02)]">
+<div class="absolute top-0 right-0 p-6">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant text-[10px] font-bold uppercase tracking-widest">
+<span class="w-2 h-2 bg-tertiary rounded-full mr-2 animate-pulse"></span>
+                        Live Stream
+                    </span>
+</div>
+<!-- Active Mic Button -->
+<div class="relative mb-8">
+<div class="absolute inset-0 bg-primary/5 rounded-full pulse-animation"></div>
+<button class="relative w-48 h-48 bg-primary rounded-full flex items-center justify-center text-white active:scale-95 transition-transform active-ring group">
+<span class="material-symbols-outlined text-6xl" style="font-variation-settings: 'FILL' 1;">mic</span>
+</button>
+</div>
+<div class="text-center">
+<h2 class="text-5xl font-extrabold font-headline text-primary mb-2">98.4%</h2>
+<p class="text-sm font-medium text-secondary">Acoustic Consistency Score</p>
+</div>
+<!-- Waveform Decoration -->
+<div class="mt-8 flex items-center gap-1 h-12">
+<div class="w-1.5 h-4 bg-primary-container rounded-full"></div>
+<div class="w-1.5 h-8 bg-primary-container rounded-full"></div>
+<div class="w-1.5 h-12 bg-primary rounded-full"></div>
+<div class="w-1.5 h-6 bg-primary-container rounded-full"></div>
+<div class="w-1.5 h-10 bg-primary rounded-full"></div>
+<div class="w-1.5 h-4 bg-primary-container rounded-full"></div>
+<div class="w-1.5 h-8 bg-primary rounded-full"></div>
+</div>
+</div>
+<!-- Side Bento: Controls & Profile -->
+<div class="md:col-span-5 lg:col-span-4 flex flex-col gap-6">
+<!-- Profile Action -->
+<div class="bg-primary-container rounded-xl p-6 text-on-primary-container shadow-[0_8px_24px_rgba(0,0,0,0.02)]">
+<div class="flex items-center justify-between mb-4">
+<div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-white">child_care</span>
+</div>
+<button class="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<h3 class="text-xl font-bold font-headline mb-1">Child Profile</h3>
+<p class="text-sm opacity-80 mb-6 text-on-primary-container">Update SafeEar listening sensitivity for Leo.</p>
+<a class="block w-full text-center py-3 bg-white text-primary font-bold rounded-lg text-sm tracking-wide transition-transform active:scale-95" href="#">Edit Settings</a>
+</div>
+<!-- Secondary Metric -->
+<div class="bg-surface-container-low rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.02)] flex-grow">
+<p class="text-[10px] font-bold uppercase tracking-widest text-outline mb-4">Acoustic Analysis</p>
+<div class="flex items-end justify-between gap-4">
+<div class="flex-grow">
+<div class="h-2 bg-surface-container-high rounded-full w-full overflow-hidden">
+<div class="h-full bg-primary w-[75%] rounded-full"></div>
+</div>
+<p class="mt-2 text-xs font-medium text-secondary">Neural Net Confidence</p>
+</div>
+<span class="text-2xl font-bold font-headline text-primary">75%</span>
+</div>
+<div class="mt-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-lg">check_circle</span>
+<span class="text-xs font-semibold text-on-surface">No anomalous patterns</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Activity Logs Section -->
+<section class="mt-12">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-xl font-bold font-headline text-primary">Recent Activity Logs</h2>
+<button class="text-[10px] font-bold uppercase tracking-widest text-secondary hover:text-primary transition-colors">Export CSV</button>
+</div>
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.02)]">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse min-w-[600px]">
+<thead>
+<tr class="bg-surface-container-low">
+<th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-outline">Confidence</th>
+<th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-outline">Streak</th>
+<th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-outline">Decision</th>
+<th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-outline">Alert ID</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-low">
+<tr>
+<td class="px-6 py-4">
+<span class="text-sm font-bold text-on-surface">98%</span>
+</td>
+<td class="px-6 py-4">
+<span class="text-sm font-medium text-secondary">12 Samples</span>
+</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 rounded-full bg-green-100 text-green-800 text-[10px] font-bold uppercase tracking-widest inline-flex items-center">
+<span class="w-1 h-1 bg-green-600 rounded-full mr-1.5"></span>
+                                        Familiar
+                                    </span>
+</td>
+<td class="px-6 py-4">
+<span class="text-[10px] font-mono bg-surface-container rounded px-2 py-1 text-on-surface-variant">SE-123</span>
+</td>
+</tr>
+<tr>
+<td class="px-6 py-4">
+<span class="text-sm font-bold text-on-surface">94%</span>
+</td>
+<td class="px-6 py-4">
+<span class="text-sm font-medium text-secondary">8 Samples</span>
+</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 rounded-full bg-green-100 text-green-800 text-[10px] font-bold uppercase tracking-widest inline-flex items-center">
+<span class="w-1 h-1 bg-green-600 rounded-full mr-1.5"></span>
+                                        Familiar
+                                    </span>
+</td>
+<td class="px-6 py-4">
+<span class="text-[10px] font-mono bg-surface-container rounded px-2 py-1 text-on-surface-variant">SE-122</span>
+</td>
+</tr>
+<tr>
+<td class="px-6 py-4">
+<span class="text-sm font-bold text-amber-600">12%</span>
+</td>
+<td class="px-6 py-4">
+<span class="text-sm font-medium text-secondary">1 Sample</span>
+</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold uppercase tracking-widest inline-flex items-center">
+<span class="w-1 h-1 bg-amber-600 rounded-full mr-1.5"></span>
+                                        Stranger
+                                    </span>
+</td>
+<td class="px-6 py-4">
+<span class="text-[10px] font-mono bg-error-container text-on-error-container rounded px-2 py-1">DISCARDED</span>
+</td>
+</tr>
+<tr>
+<td class="px-6 py-4">
+<span class="text-sm font-bold text-on-surface">99%</span>
+</td>
+<td class="px-6 py-4">
+<span class="text-sm font-medium text-secondary">42 Samples</span>
+</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 rounded-full bg-green-100 text-green-800 text-[10px] font-bold uppercase tracking-widest inline-flex items-center">
+<span class="w-1 h-1 bg-green-600 rounded-full mr-1.5"></span>
+                                        Familiar
+                                    </span>
+</td>
+<td class="px-6 py-4">
+<span class="text-[10px] font-mono bg-surface-container rounded px-2 py-1 text-on-surface-variant">SE-121</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.03)] rounded-t-3xl z-50">
+<div class="flex w-full max-w-sm justify-around">
+<a class="flex flex-col items-center justify-center bg-teal-100 dark:bg-teal-900/40 text-teal-900 dark:text-teal-50 rounded-[16px] px-8 py-2 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined text-teal-600 dark:text-teal-400" style="font-variation-settings: 'FILL' 1;">graphic_eq</span>
+<span class="text-[10px] font-bold uppercase tracking-widest font-['Manrope'] mt-1">Monitor</span>
+</a>
+<a class="flex flex-col items-center justify-center text-teal-700/50 dark:text-teal-500/50 px-8 py-2 hover:text-teal-800 dark:hover:text-teal-200 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] font-bold uppercase tracking-widest font-['Manrope'] mt-1">Settings</span>
+</a>
+</div>
+</nav>
+</body></html>

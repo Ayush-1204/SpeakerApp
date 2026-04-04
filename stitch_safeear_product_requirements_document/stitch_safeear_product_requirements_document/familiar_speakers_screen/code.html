@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SafeEar - Familiar Speakers</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-fixed": "#9df898",
+              "on-surface": "#181c1d",
+              "on-error-container": "#93000a",
+              "on-tertiary-fixed": "#002204",
+              "secondary-fixed": "#cde7ed",
+              "primary-fixed": "#acedfb",
+              "surface-bright": "#f6fafa",
+              "secondary-container": "#cde7ed",
+              "tertiary-fixed-dim": "#82db7e",
+              "primary": "#004650",
+              "on-secondary-fixed-variant": "#334b4f",
+              "on-primary-fixed": "#001f25",
+              "inverse-surface": "#2c3132",
+              "background": "#f6fafa",
+              "on-error": "#ffffff",
+              "tertiary": "#004a0f",
+              "secondary-fixed-dim": "#b1cbd1",
+              "primary-container": "#135f6b",
+              "on-primary-container": "#95d6e4",
+              "surface-container-high": "#e5e9e9",
+              "on-background": "#181c1d",
+              "on-tertiary-container": "#88e083",
+              "on-secondary": "#ffffff",
+              "surface-dim": "#d7dbdb",
+              "on-secondary-fixed": "#051f23",
+              "surface-container-highest": "#dfe3e3",
+              "surface-container-lowest": "#ffffff",
+              "error-container": "#ffdad6",
+              "surface-variant": "#dfe3e3",
+              "on-tertiary": "#ffffff",
+              "inverse-on-surface": "#edf1f1",
+              "surface-tint": "#206773",
+              "on-tertiary-fixed-variant": "#005312",
+              "outline-variant": "#bec8c9",
+              "outline": "#6f7979",
+              "secondary": "#4a6267",
+              "surface-container-low": "#f0f4f4",
+              "error": "#ba1a1a",
+              "on-secondary-container": "#50686d",
+              "surface": "#f6fafa",
+              "on-primary-fixed-variant": "#004e59",
+              "surface-container": "#ebefef",
+              "inverse-primary": "#90d1df",
+              "primary-fixed-dim": "#90d1df",
+              "on-primary": "#ffffff",
+              "tertiary-container": "#006518",
+              "on-surface-variant": "#3f4949"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      body {
+        -webkit-tap-highlight-color: transparent;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full z-50 bg-[#f6fafa]/80 backdrop-blur-xl">
+<div class="flex justify-between items-center px-6 py-4 w-full max-w-screen-xl mx-auto">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#004650] text-2xl" data-icon="security">security</span>
+<h1 class="font-headline font-bold text-lg tracking-tight text-[#004650]">SafeEar</h1>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden ring-2 ring-primary-container/20">
+<img alt="Parent Profile" class="w-full h-full object-cover" data-alt="Close up portrait of a professional woman with a warm expression in soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWjdvw_HFhJIEVTgwlFUTjNQBSzvmPrQHNSWaZpM00jtGscVXu9XV37UEeK2g9S_lr_mDHQHytcQ28EKWbtQs08TCKYONlCQDODLHT8LiAZi0KTPrYYUVbi0lhN9HmQ7xyt2Tr7df-HadkngwLr2TthC5rf2cFqBkQ_Vo9T5Zn5xo53JIkQl3LJ-OAS1IP4YUBkJConGyg2eDIGi-HRyf1s9y_V7Mx9HoLnuxkLpyCbVaXunHAPCweKxQyY7yeJhHUqaQ6MnQuHynM"/>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-screen-xl mx-auto">
+<!-- Editorial Header -->
+<section class="mb-8">
+<p class="font-label text-label-md text-on-secondary-container uppercase tracking-widest mb-2">Security Library</p>
+<h2 class="font-headline text-3xl font-bold text-on-surface mb-2">Familiar Speakers</h2>
+<p class="text-on-surface-variant max-w-md">SafeEar monitors surroundings for unknown voices. Register family members to prevent false alerts.</p>
+</section>
+<!-- Search and Filter Bar -->
+<div class="relative mb-8">
+<div class="flex items-center bg-surface-container-low rounded-xl px-4 py-3 gap-3 focus-within:ring-2 ring-primary-container transition-all">
+<span class="material-symbols-outlined text-outline" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-body-lg w-full text-on-surface placeholder:text-outline" placeholder="Search profiles..." type="text"/>
+<button class="flex items-center gap-2 px-3 py-1 bg-surface-container-highest rounded-lg text-on-surface-variant text-sm font-medium">
+<span class="material-symbols-outlined text-sm" data-icon="tune">tune</span>
+                    Filter
+                </button>
+</div>
+</div>
+<!-- Enrollment Teaser / Quick Action -->
+<div class="bg-primary-container rounded-xl p-6 mb-10 text-on-primary-container relative overflow-hidden">
+<div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+<div class="max-w-md">
+<h3 class="font-headline text-xl font-bold mb-2">Improve Recognition</h3>
+<p class="opacity-90">Register new voice profiles to ensure SafeEar can distinguish between loved ones and strangers instantly.</p>
+</div>
+<button class="bg-surface-container-lowest text-primary px-6 py-3 rounded-full font-semibold flex items-center justify-center gap-2 hover:bg-white transition-colors active:scale-95">
+<span class="material-symbols-outlined" data-icon="mic_external_on">mic_external_on</span>
+                    Enroll New Profile
+                </button>
+</div>
+<!-- Decorative gradient element -->
+<div class="absolute -right-10 -bottom-10 w-40 h-40 bg-primary opacity-20 blur-3xl rounded-full"></div>
+</div>
+<!-- Speaker Grid/List -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Profile 1 -->
+<div class="bg-surface-container-lowest p-5 rounded-xl flex items-center gap-5 transition-transform hover:-translate-y-1">
+<div class="relative">
+<img alt="Dad" class="w-16 h-16 rounded-full object-cover" data-alt="Portrait of a smiling man with a beard and glasses in a casual outdoor setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5EdBsfBkTsDB1pl8HgXIDMZyO0gFmd5zh-S6RqjVReJwqY5S83d2lx_46WZG2fx8g_qzloe8pM3rxYQ44WQiv0_eMRekOqdrradKEYr3WJl60f-Hx2p7KB1PlMlAAWK1I6t89r-rIyr_ZuL9av3vQrDDxbNhGsFpWRZ9aE2Ty3PGBxFrq_73SlJt6NOJWHd3ie0IQAA7kw3F55xfQRz8eSYTlgBkv3UKJvqspC7YynZh1OTawybSXvZOnfQ1TAEKttciOkCbw6A7E"/>
+<div class="absolute -bottom-1 -right-1 bg-tertiary-fixed w-5 h-5 rounded-full border-2 border-white flex items-center justify-center">
+<span class="material-symbols-outlined text-[12px] text-on-tertiary-fixed" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+<div class="flex-1">
+<h4 class="font-headline font-semibold text-on-surface">Father (Michael)</h4>
+<p class="text-sm text-outline">Registered 3 voice samples</p>
+</div>
+<button class="text-outline hover:text-primary p-2">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<!-- Profile 2 -->
+<div class="bg-surface-container-lowest p-5 rounded-xl flex items-center gap-5 transition-transform hover:-translate-y-1">
+<div class="relative">
+<img alt="Grandma" class="w-16 h-16 rounded-full object-cover" data-alt="Elegant older woman with silver hair smiling gently at the camera" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBYqihLtSjT-J8zX0MBYjw1GYHPUnNz9g27pm5RMNQ1S6ZLtLqGdCI-siUuYNWJtlNWhK8YPLoYrMbLovXg-wfmSzUyKJ4oSwc3Xlb6gS7sMdgjJjXYHOkGiOZcr4xtKx_BDQXdoTgoLVGOs79l8uNSGmMxjiDHxZ8_WJZWVQ_9oF2tXHLlxFkaa83-mLrYBLZ2x8FrdFAXwmacyxctmzc5CG4DStifkqibEa3zHy_JPEr9jzbUYIPp_nLaV6_1LQmgphrGihRNn80g"/>
+<div class="absolute -bottom-1 -right-1 bg-tertiary-fixed w-5 h-5 rounded-full border-2 border-white flex items-center justify-center">
+<span class="material-symbols-outlined text-[12px] text-on-tertiary-fixed" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+<div class="flex-1">
+<h4 class="font-headline font-semibold text-on-surface">Grandmother (Elisa)</h4>
+<p class="text-sm text-outline">Registered 5 voice samples</p>
+</div>
+<button class="text-outline hover:text-primary p-2">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<!-- Profile 3 -->
+<div class="bg-surface-container-lowest p-5 rounded-xl flex items-center gap-5 transition-transform hover:-translate-y-1">
+<div class="relative">
+<img alt="Nanny" class="w-16 h-16 rounded-full object-cover" data-alt="Young man with a friendly smile wearing a denim shirt in a bright studio environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4w7OB9jaf4BHK0v9K2BjUWVgBiOSG638FB5_uRwuiNbAaed7TNgEJceZmWMb20Lw4dX4h8Vvgu_TnGTCz2oXSOq38GP5Jn97H1Gte3Ex8608FkI7g4x8qbvV5V_Yy0SCIITcWvo3vC3Cy0WRzM1SvZpD-Fb9tseKgzVwW7sKSs6kdq-45KGKiRSOCBs1otgFyTc2PyBt0Iik6A5WxEeCUfRbdWA1l86fvsSVChWhcvc55UZnD93Cg393v1k4bgpI39KdF-lFidEsL"/>
+<div class="absolute -bottom-1 -right-1 bg-error-container w-5 h-5 rounded-full border-2 border-white flex items-center justify-center">
+<span class="material-symbols-outlined text-[12px] text-on-error-container" data-icon="warning">warning</span>
+</div>
+</div>
+<div class="flex-1">
+<h4 class="font-headline font-semibold text-on-surface">Nanny (Marcus)</h4>
+<p class="text-sm text-error">Sample quality low</p>
+</div>
+<button class="text-outline hover:text-primary p-2">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<!-- Profile 4 -->
+<div class="bg-surface-container-lowest p-5 rounded-xl flex items-center gap-5 transition-transform hover:-translate-y-1">
+<div class="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-outline">
+<span class="material-symbols-outlined text-3xl" data-icon="person">person</span>
+</div>
+<div class="flex-1">
+<h4 class="font-headline font-semibold text-on-surface">Aunt Sarah</h4>
+<p class="text-sm text-outline">Pending enrollment</p>
+</div>
+<button class="text-outline hover:text-primary p-2">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Floating Action Button -->
+<div class="fixed bottom-28 right-6 z-40">
+<button class="bg-primary text-on-primary w-14 h-14 rounded-2xl shadow-lg flex items-center justify-center transition-all active:scale-95 hover:shadow-xl group">
+<span class="material-symbols-outlined text-2xl group-hover:rotate-90 transition-transform" data-icon="add">add</span>
+<span class="sr-only">Add Speaker</span>
+</button>
+</div>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-[#f6fafa]/80 dark:bg-[#001f24]/80 backdrop-blur-xl rounded-t-[24px] shadow-[0_-8px_24px_rgba(0,0,0,0.04)]">
+<!-- Home -->
+<a class="flex flex-col items-center justify-center text-[#40494a] dark:text-[#bfc8ca] px-5 py-2 hover:bg-[#ebefef] dark:hover:bg-[#135f6b]/10 transition-all duration-300 active:scale-90" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home_health">home_health</span>
+<span class="font-inter font-medium text-[10px] uppercase tracking-wider">Home</span>
+</a>
+<!-- Alerts -->
+<a class="flex flex-col items-center justify-center text-[#40494a] dark:text-[#bfc8ca] px-5 py-2 hover:bg-[#ebefef] dark:hover:bg-[#135f6b]/10 transition-all duration-300 active:scale-90" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="notifications_active">notifications_active</span>
+<span class="font-inter font-medium text-[10px] uppercase tracking-wider">Alerts</span>
+</a>
+<!-- Familiar (Active) -->
+<a class="flex flex-col items-center justify-center bg-[#004650] text-[#ffffff] rounded-2xl px-5 py-2 transition-all duration-300 scale-95" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="group" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="font-inter font-medium text-[10px] uppercase tracking-wider">Familiar</span>
+</a>
+<!-- Settings -->
+<a class="flex flex-col items-center justify-center text-[#40494a] dark:text-[#bfc8ca] px-5 py-2 hover:bg-[#ebefef] dark:hover:bg-[#135f6b]/10 transition-all duration-300 active:scale-90" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="settings">settings</span>
+<span class="font-inter font-medium text-[10px] uppercase tracking-wider">Settings</span>
+</a>
+</nav>
+</body></html>

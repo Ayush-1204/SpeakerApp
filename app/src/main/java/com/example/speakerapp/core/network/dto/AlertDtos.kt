@@ -9,6 +9,7 @@ data class AlertDto(
     @SerialName("parent_id") val parentId: String,
     @SerialName("device_id") val deviceId: String,
     @SerialName("timestamp") val timestamp: String,
+    @SerialName("timestamp_ms") val timestampMs: Long? = null,
     @SerialName("confidence_score") val confidenceScore: Float,
     @SerialName("audio_clip_path") val audioClipPath: String,
     @SerialName("latitude") val latitude: Double?,

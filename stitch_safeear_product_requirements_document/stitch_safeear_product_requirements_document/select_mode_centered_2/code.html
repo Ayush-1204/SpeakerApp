@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SafeEar - Select Mode</title>
+<!-- Material Symbols Link -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Manrope & Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&amp;family=Manrope:wght@600;800&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-container": "#135f6b",
+                      "tertiary-container": "#006518",
+                      "error-container": "#ffdad6",
+                      "surface-tint": "#206773",
+                      "surface-variant": "#dfe3e3",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed": "#001f25",
+                      "on-primary": "#ffffff",
+                      "on-surface-variant": "#3f4949",
+                      "inverse-surface": "#2c3132",
+                      "on-primary-container": "#95d6e4",
+                      "on-secondary-container": "#50686d",
+                      "secondary-container": "#cde7ed",
+                      "on-error": "#ffffff",
+                      "inverse-primary": "#90d1df",
+                      "tertiary": "#004a0f",
+                      "outline": "#6f7979",
+                      "surface-container-highest": "#dfe3e3",
+                      "error": "#ba1a1a",
+                      "on-error-container": "#93000a",
+                      "surface-bright": "#f6fafa",
+                      "tertiary-fixed-dim": "#82db7e",
+                      "surface-container-low": "#f0f4f4",
+                      "on-tertiary-container": "#88e083",
+                      "surface": "#f6fafa",
+                      "surface-container": "#ebefef",
+                      "on-secondary-fixed-variant": "#334b4f",
+                      "primary": "#004650",
+                      "secondary-fixed-dim": "#b1cbd1",
+                      "inverse-on-surface": "#edf1f1",
+                      "on-tertiary-fixed": "#002204",
+                      "surface-dim": "#d7dbdb",
+                      "on-primary-fixed-variant": "#004e59",
+                      "primary-fixed-dim": "#90d1df",
+                      "tertiary-fixed": "#9df898",
+                      "on-secondary-fixed": "#051f23",
+                      "on-secondary": "#ffffff",
+                      "outline-variant": "#bec8c9",
+                      "on-surface": "#181c1d",
+                      "background": "#f6fafa",
+                      "secondary": "#4a6267",
+                      "on-tertiary-fixed-variant": "#005312",
+                      "surface-container-high": "#e5e9e9",
+                      "secondary-fixed": "#cde7ed",
+                      "primary-fixed": "#acedfb",
+                      "on-tertiary": "#ffffff",
+                      "on-background": "#181c1d"
+              },
+              "borderRadius": {
+                      "DEFAULT": "1rem",
+                      "lg": "2rem",
+                      "xl": "3rem",
+                      "full": "9999px"
+              },
+              "fontFamily": {
+                      "headline": ["Manrope"],
+                      "body": ["Inter"],
+                      "label": ["Inter"]
+              }
+            },
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background font-body text-on-surface selection:bg-primary-container selection:text-on-primary-container min-h-screen flex flex-col relative">
+<!-- TopNavBar -->
+<header class="absolute top-0 w-full z-50 bg-cyan-50/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-[0_8px_24px_rgba(0,0,0,0.02)] flex justify-between items-center px-6 h-16">
+<div class="flex items-center gap-2">
+<span class="text-xl font-extrabold tracking-tight text-cyan-950 dark:text-cyan-50 font-headline">SafeEar</span>
+</div>
+<div class="flex items-center space-x-4">
+<button class="p-2 rounded-full hover:bg-cyan-100/50 dark:hover:bg-cyan-900/50 transition-colors active:scale-95 text-cyan-900 dark:text-cyan-100">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-surface-container overflow-hidden">
+<img alt="User profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVg_g6Ika_e_N9LLjMpDJyJoGdRmg8dA-TTFwmBijL_1WV1vrEVrsLak-IWc-8f-uLb9RH6_6a_NY2W079NpNSaKzmT-H6nP5g6aJ6-PHUtI_nvbJTGi4RlIgvt8oVOMbRaN713leiZezzvcq4Iq-0j2vveZ264jlggT53PqYbOK6l_hbL0wJamYQDFAB6rJU4uSVl4dmuXxmtJTlodnQ9oSJHLtvqHBn37RPygVqj6WfCcrK3m8giNjShU51oKQu__RtOiDMwLa01"/>
+</div>
+</div>
+</header>
+<!-- Main Canvas: Perfectly Centered Content -->
+<main class="flex-grow flex flex-col items-center justify-center px-6 min-h-screen">
+<div class="w-full max-w-sm flex flex-col items-center">
+<!-- Title -->
+<h1 class="font-headline font-extrabold text-on-surface tracking-tight text-[2.5rem] mb-12 leading-tight text-center">
+                Select Mode
+            </h1>
+<!-- Mode Selection Grid -->
+<div class="w-full space-y-6">
+<!-- Parent Mode Button -->
+<button class="group w-full relative overflow-hidden bg-surface-container-lowest p-8 rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.02)] transition-all duration-300 hover:bg-primary hover:text-on-primary active:scale-[0.98] flex flex-col items-center gap-4 text-primary">
+<div class="w-16 h-16 rounded-full bg-primary-fixed flex items-center justify-center group-hover:bg-on-primary/10 transition-colors">
+<span class="material-symbols-outlined text-[32px] group-hover:text-on-primary transition-colors" data-icon="supervisor_account">supervisor_account</span>
+</div>
+<span class="font-headline font-extrabold text-xl tracking-tight">Parent Mode</span>
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</button>
+<!-- Child Mode Button -->
+<button class="group w-full relative overflow-hidden bg-surface-container-lowest p-8 rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.02)] transition-all duration-300 hover:bg-primary hover:text-on-primary active:scale-[0.98] flex flex-col items-center gap-4 text-primary">
+<div class="w-16 h-16 rounded-full bg-primary-fixed flex items-center justify-center group-hover:bg-on-primary/10 transition-colors">
+<span class="material-symbols-outlined text-[32px] group-hover:text-on-primary transition-colors" data-icon="child_care">child_care</span>
+</div>
+<span class="font-headline font-extrabold text-xl tracking-tight">Child Mode</span>
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Hidden on this screen) -->
+<nav class="hidden fixed bottom-0 left-0 w-full bg-cyan-50/80 dark:bg-slate-950/80 backdrop-blur-xl rounded-t-[32px] shadow-[0_-4px_20px_rgba(0,0,0,0.03)] flex justify-around items-center px-4 pb-6 pt-3 z-50">
+<a class="flex flex-col items-center justify-center text-cyan-700 dark:text-cyan-400 px-5 py-2" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-manrope text-[10px] font-bold uppercase tracking-wider mt-1">Home</span>
+</a>
+</nav>
+<!-- Decorative Elements -->
+<div class="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
+<div class="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-secondary-container/20 blur-[120px]"></div>
+<div class="absolute bottom-[-5%] left-[-5%] w-[40%] h-[40%] rounded-full bg-primary-container/10 blur-[100px]"></div>
+</div>
+</body></html>

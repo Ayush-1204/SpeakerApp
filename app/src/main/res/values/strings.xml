@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">SpeakerApp</string>
+    <string name="default_web_client_id">255616861785-g3bd8b8dovim80qb8avuf02ch4jltou1.apps.googleusercontent.com</string>
 </resources>
