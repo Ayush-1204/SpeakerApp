@@ -5,7 +5,9 @@ import com.example.speakerapp.network.makeAudioPart
 import com.example.speakerapp.network.toTextBody
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import retrofit2.HttpException
 import java.io.File
+import java.security.MessageDigest
 import javax.inject.Inject
 
 sealed class DetectionResult<out T> {
@@ -21,7 +23,8 @@ data class DetectionResponse(
     val strangerStreak: Int?,
     val thresholds: DetectionThresholds?,
     val alertFired: Boolean?,
-    val alertId: String?
+    val alertId: String?,
+    val idempotentReplay: Boolean?
 )
 
 data class DetectionThresholds(
@@ -54,6 +57,7 @@ class DetectionRepository @Inject constructor(
             check(sampleRate == 16000) { "Audio must be 16kHz WAV" }
 
             val deviceIdPart = deviceId.toTextBody()
+            val chunkIdPart = buildChunkId(deviceId, audioFile).toTextBody()
             val latitudePart = latitude?.toString()?.toTextBody()
             val longitudePart = longitude?.toString()?.toTextBody()
             val batteryPart = batteryPercent?.toString()?.toTextBody()
@@ -61,6 +65,7 @@ class DetectionRepository @Inject constructor(
 
             val response = apiService.detectChunk(
                 deviceId = deviceIdPart,
+                chunkId = chunkIdPart,
                 latitude = latitudePart,
                 longitude = longitudePart,
                 batteryPercent = batteryPart,
@@ -88,7 +93,8 @@ class DetectionRepository @Inject constructor(
                         strangerStreak = body.stranger_streak,
                         thresholds = thresholds,
                         alertFired = body.alert_fired,
-                        alertId = body.alert_id
+                        alertId = body.alert_id,
+                        idempotentReplay = body.idempotent_replay
                     )
                 ))
             } else {
@@ -111,6 +117,45 @@ class DetectionRepository @Inject constructor(
         } catch (e: Exception) {
             emit(DetectionResult.Error(message = e.message ?: "Network error"))
         }
+    }
+
+    suspend fun uploadDetectionChunkStrict(
+        deviceId: String,
+        audioFile: File,
+        latitude: Double? = null,
+        longitude: Double? = null,
+        batteryPercent: Int? = null,
+        chunkId: String = buildChunkId(deviceId, audioFile)
+    ) {
+        val deviceIdPart = deviceId.toTextBody()
+        val chunkIdPart = chunkId.toTextBody()
+        val latitudePart = latitude?.toString()?.toTextBody()
+        val longitudePart = longitude?.toString()?.toTextBody()
+        val batteryPart = batteryPercent?.toString()?.toTextBody()
+        val audioPart = makeAudioPart(audioFile, fieldName = "audio")
+
+        val response = apiService.detectChunk(
+            deviceId = deviceIdPart,
+            chunkId = chunkIdPart,
+            latitude = latitudePart,
+            longitude = longitudePart,
+            batteryPercent = batteryPart,
+            battery = batteryPart,
+            audio = audioPart,
+        )
+
+        if (!response.isSuccessful) {
+            throw HttpException(response)
+        }
+    }
+
+    private fun buildChunkId(deviceId: String, audioFile: File): String {
+        val bytes = audioFile.readBytes()
+        val digest = MessageDigest.getInstance("SHA-256")
+        digest.update(deviceId.toByteArray(Charsets.UTF_8))
+        digest.update(bytes)
+        val hash = digest.digest().joinToString("") { "%02x".format(it) }
+        return hash.take(40)
     }
 
     /**

@@ -23,11 +23,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.example.speakerapp.ui.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,7 +100,8 @@ fun ChildMonitoringScreen(
                 MonitoringHeader(
                     isRecording = uiState.isRecording,
                     batteryPercent = uiState.batteryPercent,
-                    uploadLatencyMs = uiState.uploadLatencyMs
+                    uploadLatencyMs = uiState.uploadLatencyMs,
+                    isOffline = uiState.isOffline
                 )
             }
 
@@ -134,14 +137,15 @@ fun ChildMonitoringScreen(
 fun MonitoringHeader(
     isRecording: Boolean,
     batteryPercent: Int?,
-    uploadLatencyMs: Long?
+    uploadLatencyMs: Long?,
+    isOffline: Boolean
 ) {
     val batteryLabel = batteryPercent?.let { "$it%" } ?: "--"
     val latencyLabel = uploadLatencyMs?.let { "${it}ms" } ?: "--"
 
     Column(modifier = Modifier.padding(top = 24.dp)) {
         Text(
-            "MONITORING: LEO'S ROOM",
+            "MONITORING",
             style = MaterialTheme.typography.labelSmall,
             color = Color(0xFF4A6267),
             fontWeight = FontWeight.Bold,
@@ -163,6 +167,28 @@ fun MonitoringHeader(
         }
         
         Spacer(modifier = Modifier.height(24.dp))
+
+        if (isOffline) {
+            Surface(
+                color = Color(0xFFFFF1F0),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.CloudOff, contentDescription = null, tint = Color(0xFFBA1A1A))
+                    Text(
+                        "Connection lost",
+                        color = Color(0xFFBA1A1A),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
         
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             MetricBadge(
@@ -209,6 +235,8 @@ fun BentoGrid(
     onMicClick: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
+    val isCompact = AppTheme.adaptive.isCompact
+
     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
         // Hero Mic Card
         Card(
@@ -312,91 +340,72 @@ fun BentoGrid(
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            // Child Profile Card
-            Card(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF135F6B))
-            ) {
-                Column(modifier = Modifier.padding(24.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier.size(48.dp).background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.ChildCare, contentDescription = null, tint = Color.White)
-                        }
-                        IconButton(onClick = onOpenSettings, modifier = Modifier.background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(8.dp))) {
-                            Icon(Icons.Default.Settings, contentDescription = null, tint = Color.White)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Child Profile", style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
-                    Text("Update SafeEar listening sensitivity for Leo.", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.8f))
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = onOpenSettings,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Edit Settings", color = Color(0xFF004650), fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
 
-            // Neural Net Confidence
-            Card(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F4F4))
+
+    }
+}
+
+
+@Composable
+private fun AcousticAnalysisCard(
+    isRecording: Boolean,
+    confidenceScore: Double?,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F4F4))
+    ) {
+        Column(modifier = Modifier.padding(24.dp)) {
+            Text("ACOUSTIC ANALYSIS", style = MaterialTheme.typography.labelSmall, color = Color(0xFF6F7979), fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
             ) {
-                Column(modifier = Modifier.padding(24.dp)) {
-                    Text("ACOUSTIC ANALYSIS", style = MaterialTheme.typography.labelSmall, color = Color(0xFF6F7979), fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            LinearProgressIndicator(
-                                progress = { confidenceScore?.toFloat() ?: 0f },
-                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                                color = Color(0xFF004650),
-                                trackColor = Color(0xFFE5E9E9)
-                            )
-                            Text("Neural Net Confidence", style = MaterialTheme.typography.labelSmall, color = Color(0xFF4A6267), fontWeight = FontWeight.Medium)
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            if (confidenceScore != null) "${(confidenceScore * 100).toInt()}%" else "--%",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = Color(0xFF004650),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(
-                            if (isRecording) Icons.Default.CheckCircle else Icons.Default.PauseCircle,
-                            contentDescription = null,
-                            tint = if (isRecording) Color(0xFF006518) else Color(0xFF6F7979),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            if (isRecording) "No anomalous patterns" else "Monitoring paused",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF181C1D),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                Column(modifier = Modifier.weight(1f)) {
+                    LinearProgressIndicator(
+                        progress = { confidenceScore?.toFloat() ?: 0f },
+                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
+                        color = Color(0xFF004650),
+                        trackColor = Color(0xFFE5E9E9)
+                    )
+                    Text(
+                        "Neural Net Confidence",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF4A6267),
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    if (confidenceScore != null) "${(confidenceScore * 100).toInt()}%" else "--%",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Color(0xFF004650),
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.End
+                )
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(
+                    if (isRecording) Icons.Default.CheckCircle else Icons.Default.PauseCircle,
+                    contentDescription = null,
+                    tint = if (isRecording) Color(0xFF006518) else Color(0xFF6F7979),
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    if (isRecording) "No anomalous patterns" else "Monitoring paused",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF181C1D),
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }

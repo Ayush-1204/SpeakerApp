@@ -33,5 +33,6 @@ data class DetectionChunkResponse(
     val thresholds: DetectionThresholds? = null,
     val stage: DetectionStageInfo? = null,
     val alert_fired: Boolean? = null,
-    val alert_id: String? = null
+    val alert_id: String? = null,
+    val idempotent_replay: Boolean? = null
 )

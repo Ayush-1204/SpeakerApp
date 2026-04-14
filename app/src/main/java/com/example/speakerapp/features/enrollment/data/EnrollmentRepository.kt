@@ -6,6 +6,9 @@ import com.example.speakerapp.network.makeAudioPart
 import com.example.speakerapp.network.makeImagePart
 import com.example.speakerapp.network.toTextBody
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import java.io.File
 import javax.inject.Inject
@@ -23,7 +26,9 @@ data class EnrolledSpeaker(
     val embeddingDim: Int,
     val voicedMs: Double?,
     val numSegments: Int?,
-    val speechQualityPassed: Boolean?
+    val speechQualityPassed: Boolean?,
+    val qualityScore: Float? = null,
+    val qualityLabel: String? = null
 )
 
 data class SpeakerListItem(
@@ -32,12 +37,21 @@ data class SpeakerListItem(
     val sampleCount: Int,
     val profileImageUrl: String?,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val qualityScore: Float? = null,
+    val qualityLabel: String? = null
 )
 
 class EnrollmentRepository @Inject constructor(
     private val apiService: ApiService
 ) {
+
+    private val _speakerCache = MutableStateFlow<List<SpeakerListItem>>(emptyList())
+    val speakerCache: StateFlow<List<SpeakerListItem>> = _speakerCache.asStateFlow()
+
+    fun replaceSpeakerCache(items: List<SpeakerListItem>) {
+        _speakerCache.value = items
+    }
 
     /**
      * Enroll a speaker by uploading a WAV file.
@@ -76,9 +90,26 @@ class EnrollmentRepository @Inject constructor(
                         embeddingDim = body.embedding_dim,
                         voicedMs = body.stages.vad?.voiced_ms,
                         numSegments = body.stages.vad?.num_segments,
-                        speechQualityPassed = body.stages.speech_quality?.passed
+                        speechQualityPassed = body.stages.speech_quality?.passed,
+                        qualityScore = null,
+                        qualityLabel = qualityLabelFromSampleCount(body.samples_saved)
                     )
                 ))
+
+                if (body.items.isNotEmpty()) {
+                    _speakerCache.value = body.items.map { item ->
+                        SpeakerListItem(
+                            id = item.id,
+                            displayName = item.display_name,
+                            sampleCount = item.sample_count,
+                            profileImageUrl = item.profile_image_url,
+                            createdAt = item.created_at,
+                            updatedAt = item.updated_at,
+                            qualityScore = item.quality_score,
+                            qualityLabel = qualityLabelFromSampleCount(item.sample_count)
+                        )
+                    }
+                }
             } else {
                 val errorDetail = response.errorBody()?.string() ?: "Enrollment failed"
                 emit(EnrollmentResult.Error(
@@ -111,9 +142,13 @@ class EnrollmentRepository @Inject constructor(
                         sampleCount = item.sample_count,
                         profileImageUrl = item.profile_image_url,
                         createdAt = item.created_at,
-                        updatedAt = item.updated_at
+                        updatedAt = item.updated_at,
+                        qualityScore = item.quality_score,
+                        qualityLabel = qualityLabelFromSampleCount(item.sample_count)
                     )
                 }
+
+                _speakerCache.value = speakers
 
                 emit(EnrollmentResult.Success(speakers))
             } else {
@@ -153,7 +188,9 @@ class EnrollmentRepository @Inject constructor(
                         sampleCount = body.sample_count,
                         profileImageUrl = body.profile_image_url,
                         createdAt = body.created_at,
-                        updatedAt = body.updated_at
+                        updatedAt = body.updated_at,
+                        qualityScore = body.quality_score,
+                        qualityLabel = qualityLabelFromSampleCount(body.sample_count)
                     )
                 ))
             } else {
@@ -193,7 +230,9 @@ class EnrollmentRepository @Inject constructor(
                         sampleCount = body.sample_count,
                         profileImageUrl = body.profile_image_url,
                         createdAt = body.created_at,
-                        updatedAt = body.updated_at
+                        updatedAt = body.updated_at,
+                        qualityScore = body.quality_score,
+                        qualityLabel = qualityLabelFromSampleCount(body.sample_count)
                     )
                 ))
             } else {
@@ -228,6 +267,14 @@ class EnrollmentRepository @Inject constructor(
             }
         } catch (e: Exception) {
             emit(EnrollmentResult.Error(message = e.message ?: "Network error"))
+        }
+    }
+
+    private fun qualityLabelFromSampleCount(sampleCount: Int): String {
+        return when {
+            sampleCount in 6..12 -> "good"
+            sampleCount in 3..6 || sampleCount in 12..15 -> "fair"
+            else -> "poor"
         }
     }
 }

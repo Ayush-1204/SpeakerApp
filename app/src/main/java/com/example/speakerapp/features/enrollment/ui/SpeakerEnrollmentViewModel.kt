@@ -10,12 +10,16 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
 
 data class SpeakerEnrollmentUiState(
     val isLoading: Boolean = false,
+    val isRecording: Boolean = false,
+    val recordingRemainingMs: Long = 0L,
     val enrolledSpeaker: EnrolledSpeaker? = null,
     val error: String? = null,
     val voicedMs: Double? = null,
@@ -32,15 +36,47 @@ class SpeakerEnrollmentViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SpeakerEnrollmentUiState())
     val uiState: StateFlow<SpeakerEnrollmentUiState> = _uiState.asStateFlow()
 
-    fun recordAndEnroll(displayName: String, durationMs: Long = 5000L) {
+    fun recordAndEnroll(displayName: String, durationMs: Long = 5000L, speakerId: String? = null) {
         viewModelScope.launch {
             if (!audioRecorder.initialize()) {
-                _uiState.value = _uiState.value.copy(error = "Failed to initialize recorder")
+                _uiState.value = _uiState.value.copy(
+                    isRecording = false,
+                    recordingRemainingMs = 0L,
+                    error = "Failed to initialize recorder"
+                )
                 return@launch
+            }
+
+            _uiState.value = _uiState.value.copy(
+                isRecording = true,
+                recordingRemainingMs = durationMs,
+                error = null
+            )
+
+            val countdownJob = launch {
+                val startTime = System.currentTimeMillis()
+                while (isActive) {
+                    val elapsed = System.currentTimeMillis() - startTime
+                    val remaining = (durationMs - elapsed).coerceAtLeast(0L)
+
+                    _uiState.value = _uiState.value.copy(
+                        isRecording = remaining > 0L,
+                        recordingRemainingMs = remaining
+                    )
+
+                    if (remaining == 0L) break
+                    delay(100L)
+                }
             }
 
             val tempFile = File.createTempFile("enroll_record_", ".wav")
             val recordedFile = audioRecorder.recordAudio(durationMs, tempFile)
+            countdownJob.cancel()
+
+            _uiState.value = _uiState.value.copy(
+                isRecording = false,
+                recordingRemainingMs = 0L
+            )
 
             if (recordedFile == null || !recordedFile.exists()) {
                 _uiState.value = _uiState.value.copy(error = "Voice recording failed")
@@ -48,7 +84,7 @@ class SpeakerEnrollmentViewModel @Inject constructor(
                 return@launch
             }
 
-            enrollSpeaker(displayName = displayName, audioFile = recordedFile)
+            enrollSpeaker(displayName = displayName, audioFile = recordedFile, speakerId = speakerId)
             audioRecorder.release()
         }
     }

@@ -45,6 +45,17 @@ data class AckAlertResponse(
     val updated_at: String
 )
 
+@Serializable
+data class FlagFamiliarRequest(
+    val display_name: String
+)
+
+@Serializable
+data class FlagFamiliarResponse(
+    val status: String? = null,
+    val items: List<SpeakerInfo> = emptyList()
+)
+
 // ===== Health Check =====
 @Serializable
 data class HealthResponse(

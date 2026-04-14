@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -38,7 +39,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun SpeakerListScreen(
     viewModel: SpeakerListViewModel,
-    onEnrollNew: () -> Unit
+    onEnrollNew: () -> Unit,
+    onImproveQuality: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
@@ -75,7 +77,6 @@ fun SpeakerListScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(Icons.Default.Security, contentDescription = null, tint = Color(0xFF004650))
                         Text(
                             "SafeEar",
                             style = MaterialTheme.typography.titleLarge.copy(
@@ -87,32 +88,32 @@ fun SpeakerListScreen(
                     }
                 },
                 actions = {
-                    AsyncImage(
-                        model = "https://lh3.googleusercontent.com/aida-public/AB6AXuDWjdvw_HFhJIEVTgwlFUTjNQBSzvmPrQHNSWaZpM00jtGscVXu9XV37UEeK2g9S_lr_mDHQHytcQ28EKWbtQs08TCKYONlCQDODLHT8LiAZi0KTPrYYUVbi0lhN9HmQ7xyt2Tr7df-HadkngwLr2TthC5rf2cFqBkQ_Vo9T5Zn5xo53JIkQl3LJ-OAS1IP4YUBkJConGyg2eDIGi-HRyf1s9y_V7Mx9HoLnuxkLpyCbVaXunHAPCweKxQyY7yeJhHUqaQ6MnQuHynM",
-                        contentDescription = "Profile",
-                        modifier = Modifier
-                            .padding(end = 16.dp)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, Color(0xFF135F6B).copy(alpha = 0.2f), CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
+                    Surface(
+                        onClick = onEnrollNew,
+                        shape = CircleShape,
+                        color = Color(0xFF004650),
+                        modifier = Modifier.size(40.dp),
+                        contentColor = Color.White
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Add Speaker",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFFF6FAFA).copy(alpha = 0.8f)
                 )
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onEnrollNew,
-                containerColor = Color(0xFF004650),
-                contentColor = Color.White,
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.navigationBarsPadding()
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Speaker")
-            }
         }
     ) { padding ->
         LazyVerticalGrid(
@@ -182,7 +183,7 @@ fun SpeakerListScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Text("Filter", style = MaterialTheme.typography.labelSmall)
+                                Text("Sort", style = MaterialTheme.typography.labelSmall)
                             }
                         }
 
@@ -196,7 +197,7 @@ fun SpeakerListScreen(
                             border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBEC8C9).copy(alpha = 0.5f))
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Sort Ascending") },
+                                text = { Text("Sort A-Z") },
                                 leadingIcon = {
                                     if (sortAscending) {
                                         Icon(Icons.Default.Check, contentDescription = null)
@@ -212,7 +213,7 @@ fun SpeakerListScreen(
                                 )
                             )
                             DropdownMenuItem(
-                                text = { Text("Sort Descending") },
+                                text = { Text("Sort Z-A") },
                                 leadingIcon = {
                                     if (!sortAscending) {
                                         Icon(Icons.Default.Check, contentDescription = null)
@@ -302,7 +303,8 @@ fun SpeakerListScreen(
                         },
                         onDelete = {
                             deletingSpeaker = speaker
-                        }
+                        },
+                        onImproveQuality = onImproveQuality
                     )
                 }
             }
@@ -409,125 +411,174 @@ fun SpeakerCard(
     speaker: SpeakerListItem,
     profileImageUrl: String?,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onImproveQuality: (String) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var showQualityHelp by remember { mutableStateOf(false) }
     val menuInteraction = remember { MutableInteractionSource() }
     val menuPressed by menuInteraction.collectIsPressedAsState()
     val menuScale by animateFloatAsState(
         targetValue = if (menuPressed) 0.9f else 1f,
         label = "menuScale"
     )
+    val qualityLabel = speaker.qualityLabel?.lowercase()
+    val isPoorQuality = qualityLabel == "poor"
+    val cardModifier = if (isPoorQuality) {
+        Modifier.fillMaxWidth().clickable { onImproveQuality(speaker.id) }
+    } else {
+        Modifier.fillMaxWidth()
+    }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = cardModifier,
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            Box(contentAlignment = Alignment.BottomEnd) {
-                Surface(
-                    modifier = Modifier.size(64.dp),
-                    shape = CircleShape,
-                    color = Color(0xFFE5E9E9)
-                ) {
-                    if (!profileImageUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = profileImageUrl,
-                            contentDescription = "Speaker",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Icon(
-                            Icons.Default.Person,
-                            contentDescription = null,
-                            modifier = Modifier.padding(16.dp),
-                            tint = Color(0xFF6F7979)
-                        )
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .background(Color(0xFF9DF898), CircleShape)
-                        .border(2.dp, Color.White, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(12.dp), tint = Color(0xFF002204))
-                }
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    speaker.displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF181C1D)
-                )
-                Text(
-                    "Registered ${speaker.sampleCount} voice ${if (speaker.sampleCount == 1) "sample" else "samples"}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF6F7979)
-                )
-            }
-            Box {
-                Surface(
-                    onClick = { showMenu = true },
-                    interactionSource = menuInteraction,
-                    shape = CircleShape,
-                    color = Color(0xFFF0F4F4).copy(alpha = 0.8f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFDFE3E3)),
-                    modifier = Modifier
-                        .size(34.dp)
-                        .graphicsLayer {
-                            scaleX = menuScale
-                            scaleY = menuScale
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                Box(contentAlignment = Alignment.BottomEnd) {
+                    Surface(
+                        modifier = Modifier.size(64.dp),
+                        shape = CircleShape,
+                        color = Color(0xFFE5E9E9)
+                    ) {
+                        if (!profileImageUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = profileImageUrl,
+                                contentDescription = "Speaker",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                modifier = Modifier.padding(16.dp),
+                                tint = Color(0xFF6F7979)
+                            )
                         }
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Options", tint = Color(0xFF50686D))
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .background(Color(0xFF9DF898), CircleShape)
+                            .border(2.dp, Color.White, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(12.dp), tint = Color(0xFF002204))
                     }
                 }
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false },
-                    shape = RoundedCornerShape(18.dp),
-                    containerColor = Color.White.copy(alpha = 0.94f),
-                    tonalElevation = 8.dp,
-                    shadowElevation = 12.dp,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBEC8C9).copy(alpha = 0.5f))
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Edit") },
-                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-                        onClick = {
-                            showMenu = false
-                            onEdit()
-                        },
-                        colors = MenuDefaults.itemColors(
-                            textColor = Color(0xFF181C1D),
-                            leadingIconColor = Color(0xFF50686D)
-                        )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        speaker.displayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF181C1D)
                     )
-                    DropdownMenuItem(
-                        text = { Text("Delete") },
-                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFFBA1A1A)) },
-                        onClick = {
-                            showMenu = false
-                            onDelete()
-                        },
-                        colors = MenuDefaults.itemColors(
-                            textColor = Color(0xFF181C1D),
-                            leadingIconColor = Color(0xFFBA1A1A)
-                        )
+                    Text(
+                        "Registered ${speaker.sampleCount} voice ${if (speaker.sampleCount == 1) "sample" else "samples"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF6F7979)
                     )
+                    speaker.qualityLabel?.let { label ->
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            val indicatorColor = when (label.lowercase()) {
+                                "good" -> Color(0xFF006518)
+                                "fair" -> Color(0xFFB26A00)
+                                "poor" -> Color(0xFFBA1A1A)
+                                else -> Color(0xFF6F7979)
+                            }
+                            Box(modifier = Modifier.size(8.dp).background(indicatorColor, CircleShape))
+                            Text(
+                                when (label.lowercase()) {
+                                    "good" -> "Good quality"
+                                    "fair" -> "Fair quality"
+                                    "poor" -> "Poor quality — tap to improve"
+                                    else -> label
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = indicatorColor
+                            )
+                            if (isPoorQuality) {
+                                IconButton(onClick = { showQualityHelp = true }, modifier = Modifier.size(24.dp)) {
+                                    Icon(Icons.Default.Info, contentDescription = "Quality help", tint = Color(0xFF6F7979))
+                                }
+                            }
+                        }
+                    }
+                }
+                Box {
+                    Surface(
+                        onClick = { showMenu = true },
+                        interactionSource = menuInteraction,
+                        shape = CircleShape,
+                        color = Color(0xFFF0F4F4).copy(alpha = 0.8f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFDFE3E3)),
+                        modifier = Modifier
+                            .size(34.dp)
+                            .graphicsLayer {
+                                scaleX = menuScale
+                                scaleY = menuScale
+                            }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Options", tint = Color(0xFF50686D))
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                        shape = RoundedCornerShape(18.dp),
+                        containerColor = Color.White.copy(alpha = 0.94f),
+                        tonalElevation = 8.dp,
+                        shadowElevation = 12.dp,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBEC8C9).copy(alpha = 0.5f))
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Edit") },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                            onClick = {
+                                showMenu = false
+                                onEdit()
+                            },
+                            colors = MenuDefaults.itemColors(
+                                textColor = Color(0xFF181C1D),
+                                leadingIconColor = Color(0xFF50686D)
+                            )
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFFBA1A1A)) },
+                            onClick = {
+                                showMenu = false
+                                onDelete()
+                            },
+                            colors = MenuDefaults.itemColors(
+                                textColor = Color(0xFF181C1D),
+                                leadingIconColor = Color(0xFFBA1A1A)
+                            )
+                        )
+                    }
                 }
             }
+        }
+
+        if (showQualityHelp) {
+            AlertDialog(
+                onDismissRequest = { showQualityHelp = false },
+                title = { Text("Improve quality") },
+                text = { Text("Add more samples in a quiet room for better detection accuracy.") },
+                confirmButton = {
+                    TextButton(onClick = { showQualityHelp = false }) { Text("OK") }
+                }
+            )
         }
     }
 }

@@ -9,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
@@ -26,9 +27,28 @@ class SpeakerListViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(SpeakerListUiState())
     val uiState: StateFlow<SpeakerListUiState> = _uiState.asStateFlow()
+    private var cacheInitialized = false
 
     init {
+        observeSpeakerCache()
         loadSpeakers()
+    }
+
+    private fun observeSpeakerCache() {
+        viewModelScope.launch {
+            enrollmentRepository.speakerCache.collectLatest { cached ->
+                if (!cacheInitialized) {
+                    cacheInitialized = true
+                    if (cached.isEmpty()) return@collectLatest
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    speakers = cached,
+                    error = null
+                )
+            }
+        }
     }
 
     fun loadSpeakers() {

@@ -1,5 +1,13 @@
 package com.example.speakerapp.features.settings.ui
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -17,9 +25,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import com.example.speakerapp.core.auth.TokenManager
 import kotlinx.coroutines.launch
@@ -30,17 +40,54 @@ fun SettingsScreen(
     tokenManager: TokenManager,
     onOpenAlerts: () -> Unit,
     onOpenMonitor: () -> Unit,
+    onOpenBatterySetup: () -> Unit,
+    onChangeMode: () -> Unit,
     onLogout: () -> Unit
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var deviceRole by remember { mutableStateOf<String?>(null) }
     var acousticAlertsEnabled by remember { mutableStateOf(true) }
     var dailySummaryEnabled by remember { mutableStateOf(false) }
+    var micPermissionGranted by remember { mutableStateOf(false) }
+    var locationPermissionGranted by remember { mutableStateOf(false) }
+
+    fun refreshPermissionState() {
+        micPermissionGranted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+
+        val fineGranted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        val coarseGranted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        locationPermissionGranted = fineGranted || coarseGranted
+    }
+
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) {
+        refreshPermissionState()
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        refreshPermissionState()
+    }
 
     LaunchedEffect(Unit) {
         scope.launch {
             deviceRole = tokenManager.getDeviceRole()
         }
+        refreshPermissionState()
     }
 
     Scaffold(
@@ -49,7 +96,7 @@ fun SettingsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Teal Sentinel",
+                        "SafeEar",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.ExtraBold,
                             letterSpacing = (-0.5).sp
@@ -139,8 +186,45 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(24.dp))
             SettingsSectionTitle("Permissions")
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                PermissionBadge(Icons.Default.Mic, "MICROPHONE", "ACTIVE", Modifier.weight(1f))
-                PermissionBadge(Icons.Default.LocationOn, "LOCATION", "ACTIVE", Modifier.weight(1f))
+                PermissionBadge(
+                    icon = Icons.Default.Mic,
+                    label = "MICROPHONE",
+                    isGranted = micPermissionGranted,
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        if (micPermissionGranted) return@PermissionBadge
+                        micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                )
+                PermissionBadge(
+                    icon = Icons.Default.LocationOn,
+                    label = "LOCATION",
+                    isGranted = locationPermissionGranted,
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        if (locationPermissionGranted) return@PermissionBadge
+                        locationPermissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            )
+                        )
+                    }
+                )
+            }
+
+            if (!micPermissionGranted || !locationPermissionGranted) {
+                Spacer(modifier = Modifier.height(10.dp))
+                TextButton(
+                    onClick = {
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:${context.packageName}")
+                        }
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Text("Open app settings to allow denied permissions")
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -182,9 +266,21 @@ fun SettingsScreen(
                         }
                     }
                 }
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = onOpenBatterySetup,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF004650))
+                ) {
+                    Icon(Icons.Default.BatterySaver, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Fix background monitoring")
+                }
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
+            
             SettingsSectionTitle("Privacy & Data")
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF135F6B)),
@@ -213,6 +309,7 @@ fun SettingsScreen(
                     }
                 }
             }
+            
 
             Spacer(modifier = Modifier.height(24.dp))
             SettingsSectionTitle("About SafeEar")
@@ -222,10 +319,10 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column {
-                    InfoRow("Version", "v2.4.12-pro")
+                    InfoRow("Version", "v2.4.12")
                     HorizontalDivider(color = Color(0xFFDFE3E3))
-                    InfoRow("Build Identity", "SENTINEL-AX-992", isMono = true)
-                    HorizontalDivider(color = Color(0xFFDFE3E3))
+                    //InfoRow("Build Identity", "SENTINEL-AX-992", isMono = true)
+                    //HorizontalDivider(color = Color(0xFFDFE3E3))
                     InfoRow("Device Role", deviceRole ?: "Unknown")
                     HorizontalDivider(color = Color(0xFFDFE3E3))
                     InfoRow("Legal", "", hasChevron = true)
@@ -233,6 +330,21 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(32.dp))
+            OutlinedButton(
+                onClick = onChangeMode,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF004650)),
+                border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF004650).copy(alpha = 0.14f))
+            ) {
+                Icon(Icons.Default.SwapHoriz, contentDescription = null)
+                Spacer(modifier = Modifier.width(12.dp))
+                Text("Change Mode", fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
             OutlinedButton(
                 onClick = onLogout,
                 modifier = Modifier
@@ -249,7 +361,7 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
             Text(
-                "© 2024 TEAL SENTINEL DOMESTIC MONITORING",
+                "© 2026 SafeEar DOMESTIC MONITORING",
                 style = MaterialTheme.typography.labelSmall,
                 color = Color(0xFF3F4949).copy(alpha = 0.4f),
                 fontWeight = FontWeight.Bold,
@@ -316,27 +428,38 @@ fun ToggleRow(
 }
 
 @Composable
-fun PermissionBadge(icon: ImageVector, label: String, status: String, modifier: Modifier = Modifier) {
+fun PermissionBadge(
+    icon: ImageVector,
+    label: String,
+    isGranted: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
+) {
+    val statusText = if (isGranted) "ACTIVE" else "REQUIRED"
+    val iconTint = if (isGranted) Color(0xFF006518) else Color(0xFFBA1A1A)
+    val chipBackground = if (isGranted) Color(0xFF9DF898) else Color(0xFFFFDAD6)
+    val chipTextColor = if (isGranted) Color(0xFF005312) else Color(0xFF410002)
+
     Surface(
         color = Color.White,
         shape = RoundedCornerShape(16.dp),
-        modifier = modifier
+        modifier = modifier.clickable(onClick = onClick)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp), tint = Color(0xFF006518))
+            Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp), tint = iconTint)
             Text(label, style = MaterialTheme.typography.labelSmall, color = Color(0xFF3F4949), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Surface(
-                color = Color(0xFF9DF898),
+                color = chipBackground,
                 shape = CircleShape
             ) {
                 Text(
-                    status,
+                    statusText,
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFF005312),
+                    color = chipTextColor,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                 )

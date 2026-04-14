@@ -67,6 +67,12 @@ fun AlertsScreen(
     val selectedAlertId = remember { mutableStateOf<String?>(null) }
     val familiarName = remember { mutableStateOf("") }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.releasePlayback()
+        }
+    }
+
     Scaffold(
         containerColor = Color(0xFFF6FAFA),
         topBar = {
@@ -105,7 +111,7 @@ fun AlertsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
@@ -136,8 +142,16 @@ fun AlertsScreen(
                 AlertFeedCard(
                     alert = alert,
                     isDeleting = uiState.deletingAlertId == alert.id,
+                    isPlaying = uiState.activePlaybackAlertId == alert.id && uiState.isPlayingClip,
+                    isBuffering = uiState.activePlaybackAlertId == alert.id && uiState.isBufferingClip,
+                    playbackErrorMessage = if (uiState.activePlaybackAlertId == alert.id) uiState.playbackErrorMessage else null,
+                    hasAudioClip = alert.audioClipPath.isNotBlank(),
+                    playbackPositionMs = if (uiState.activePlaybackAlertId == alert.id) uiState.playbackPositionMs else 0L,
+                    playbackDurationMs = if (uiState.activePlaybackAlertId == alert.id) uiState.playbackDurationMs else 0L,
                     onAck = { viewModel.acknowledgeAlert(alert.id) },
                     onPlay = { onPlayClip(alert.id) },
+                    onPause = { viewModel.pauseAlertPlayback() },
+                    onSeek = { viewModel.seekAlertPlayback(it) },
                     onFlagAsFamiliar = {
                         selectedAlertId.value = alert.id
                         familiarName.value = ""
@@ -216,34 +230,23 @@ fun AlertsScreen(
 fun AlertFeedCard(
     alert: AlertItem,
     isDeleting: Boolean,
+    isPlaying: Boolean,
+    isBuffering: Boolean,
+    playbackErrorMessage: String?,
+    hasAudioClip: Boolean,
+    playbackPositionMs: Long,
+    playbackDurationMs: Long,
     onAck: () -> Unit,
     onPlay: () -> Unit,
+    onPause: () -> Unit,
+    onSeek: (Long) -> Unit,
     onFlagAsFamiliar: () -> Unit,
     onDelete: () -> Unit,
     onMap: () -> Unit
 ) {
-    val clipDurationMs = 12_000L
-    var isPlaying by remember(alert.id) { mutableStateOf(false) }
-    var playbackMs by remember(alert.id) { mutableStateOf(0L) }
-    var isDragging by remember(alert.id) { mutableStateOf(false) }
-
-    LaunchedEffect(isPlaying, isDragging, alert.id) {
-        if (!isPlaying || isDragging) return@LaunchedEffect
-
-        var lastFrameNanos = withFrameNanos { it }
-
-        while (isPlaying && !isDragging && playbackMs < clipDurationMs) {
-            val frameNanos = withFrameNanos { it }
-            val deltaMs = ((frameNanos - lastFrameNanos) / 1_000_000L).coerceAtLeast(0L)
-            lastFrameNanos = frameNanos
-
-            playbackMs = (playbackMs + deltaMs).coerceAtMost(clipDurationMs)
-        }
-
-        if (playbackMs >= clipDurationMs) {
-            isPlaying = false
-        }
-    }
+    val clipDurationMs = playbackDurationMs.coerceAtLeast(0L)
+    val clipPositionMs = playbackPositionMs.coerceIn(0L, if (clipDurationMs > 0L) clipDurationMs else Long.MAX_VALUE)
+    val canSeek = clipDurationMs > 0L
 
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -335,73 +338,116 @@ fun AlertFeedCard(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Audio Player Bar
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFF0F4F4)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    if (!hasAudioClip) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFF0F4F4)
                         ) {
-                            IconButton(
-                                onClick = {
-                                    if (isPlaying) {
-                                        isPlaying = false
-                                    } else {
-                                        if (playbackMs >= clipDurationMs) {
-                                            playbackMs = 0L
-                                        }
-                                        onPlay()
-                                        isPlaying = true
-                                    }
-                                },
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(Color(0xFF004650), CircleShape)
+                            Text(
+                                "No audio recorded for this alert.",
+                                modifier = Modifier.padding(16.dp),
+                                color = Color(0xFF4A6267),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    } else if (!playbackErrorMessage.isNullOrBlank()) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFFFF1F0)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Icon(
-                                    if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                    contentDescription = if (isPlaying) "Pause" else "Play",
-                                    tint = Color.White
-                                )
+                                Icon(Icons.Default.Error, contentDescription = null, tint = Color(0xFFBA1A1A))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Audio clip unavailable", fontWeight = FontWeight.Bold, color = Color(0xFF181C1D))
+                                    Text(playbackErrorMessage, color = Color(0xFF6F7979), style = MaterialTheme.typography.bodySmall)
+                                }
+                                TextButton(onClick = onPlay) { Text("Retry") }
                             }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Slider(
-                                    value = playbackMs.toFloat(),
-                                    onValueChange = { value ->
-                                        isDragging = true
-                                        playbackMs = value.roundToLong().coerceIn(0L, clipDurationMs)
+                        }
+                    } else {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFF0F4F4)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        if (isBuffering) return@IconButton
+                                        if (isPlaying) {
+                                            onPause()
+                                        } else {
+                                            if (canSeek && clipPositionMs >= clipDurationMs) {
+                                                onSeek(0L)
+                                            }
+                                            onPlay()
+                                        }
                                     },
-                                    onValueChangeFinished = {
-                                        isDragging = false
-                                        if (playbackMs >= clipDurationMs) isPlaying = false
-                                    },
-                                    valueRange = 0f..clipDurationMs.toFloat(),
-                                    colors = SliderDefaults.colors(
-                                        thumbColor = Color(0xFF004650),
-                                        activeTrackColor = Color(0xFF004650),
-                                        inactiveTrackColor = Color(0xFFE5E9E9)
-                                    )
-                                )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(Color(0xFF004650), CircleShape)
                                 ) {
-                                    Text(
-                                        formatClipTime((playbackMs / 1000L).toInt()),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color(0xFF6F7979),
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        formatClipTime((clipDurationMs / 1000L).toInt()),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color(0xFF6F7979),
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    if (isBuffering) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            strokeWidth = 2.dp,
+                                            color = Color.White
+                                        )
+                                    } else {
+                                        Icon(
+                                            if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                            contentDescription = if (isPlaying) "Pause" else "Play",
+                                            tint = Color.White
+                                        )
+                                    }
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    if (isBuffering && clipDurationMs == 0L) {
+                                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                                    } else {
+                                        Slider(
+                                            value = clipPositionMs.toFloat(),
+                                            onValueChange = { value ->
+                                                if (canSeek) {
+                                                    onSeek(value.roundToLong().coerceIn(0L, clipDurationMs))
+                                                }
+                                            },
+                                            valueRange = 0f..maxOf(clipDurationMs, 1L).toFloat(),
+                                            enabled = canSeek,
+                                            colors = SliderDefaults.colors(
+                                                thumbColor = Color(0xFF004650),
+                                                activeTrackColor = Color(0xFF004650),
+                                                inactiveTrackColor = Color(0xFFE5E9E9)
+                                            )
+                                        )
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            formatClipTime((clipPositionMs / 1000L).toInt()),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color(0xFF6F7979),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            formatClipTime((clipDurationMs / 1000L).toInt()),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color(0xFF6F7979),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -3,7 +3,16 @@ package com.example.speakerapp.features.enrollment.ui
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GraphicEq
@@ -17,8 +26,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +41,7 @@ import java.io.File
 @Composable
 fun SpeakerEnrollmentScreen(
     viewModel: SpeakerEnrollmentViewModel,
+    preloadedSpeakerId: String? = null,
     onEnrollmentSuccess: () -> Unit
 ) {
     val context = LocalContext.current
@@ -41,6 +53,17 @@ fun SpeakerEnrollmentScreen(
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         selectedFileUri.value = uri
     }
+
+    val recordingPulse = rememberInfiniteTransition(label = "recordPulse")
+    val pulseScale by recordingPulse.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.12f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 420, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "recordPulseScale"
+    )
 
     LaunchedEffect(uiState.enrolledSpeaker) {
         if (uiState.enrolledSpeaker != null) {
@@ -110,15 +133,53 @@ fun SpeakerEnrollmentScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.92f)
                     )
-                    Button(
-                        onClick = { viewModel.recordAndEnroll(speakerName.value, durationMs = 5000L) },
-                        enabled = speakerName.value.isNotBlank() && !uiState.isLoading,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(999.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Default.GraphicEq, contentDescription = null, tint = Color(0xFF004650))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Record 5s", color = Color(0xFF004650))
+                        Button(
+                            onClick = { viewModel.recordAndEnroll(speakerName.value, durationMs = 5000L, speakerId = preloadedSpeakerId) },
+                            enabled = speakerName.value.isNotBlank() && !uiState.isLoading && !uiState.isRecording,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(999.dp)
+                        ) {
+                            val scaleModifier = if (uiState.isRecording) {
+                                Modifier.scale(pulseScale)
+                            } else {
+                                Modifier
+                            }
+
+                            Box(
+                                modifier = scaleModifier
+                                    .size(18.dp)
+                                    .background(
+                                        color = if (uiState.isRecording) Color(0xFFBA1A1A) else Color.Transparent,
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.GraphicEq, contentDescription = null, tint = Color(0xFF004650))
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (uiState.isRecording) "Recording..." else "Record 5s", color = Color(0xFF004650))
+                        }
+
+                        AnimatedVisibility(visible = uiState.isRecording) {
+                            Surface(
+                                shape = RoundedCornerShape(999.dp),
+                                color = Color.White.copy(alpha = 0.16f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.35f))
+                            ) {
+                                val remainingSeconds = ((uiState.recordingRemainingMs + 999L) / 1000L).coerceIn(0L, 5L)
+                                Text(
+                                    text = "00:${remainingSeconds.toString().padStart(2, '0')}",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -154,7 +215,7 @@ fun SpeakerEnrollmentScreen(
                                 val input = context.contentResolver.openInputStream(uri) ?: return@launch
                                 val tempFile = File.createTempFile("enroll_", ".wav", context.cacheDir)
                                 input.use { stream -> tempFile.outputStream().use { stream.copyTo(it) } }
-                                viewModel.enrollSpeaker(speakerName.value, tempFile)
+                                viewModel.enrollSpeaker(speakerName.value, tempFile, preloadedSpeakerId)
                             }
                         },
                         enabled = speakerName.value.isNotBlank() && selectedFileUri.value != null && !uiState.isLoading,

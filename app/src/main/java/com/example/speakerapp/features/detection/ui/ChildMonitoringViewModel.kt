@@ -59,6 +59,7 @@ data class ChildMonitoringUiState(
     val batteryPercent: Int? = null,
     val uploadLatencyMs: Long? = null,
     val remoteMonitoringEnabled: Boolean? = null,
+    val isOffline: Boolean = false,
     val error: String? = null,
     val messages: List<String> = emptyList(),
     val activityLogs: List<DetectionLogEntry> = emptyList()
@@ -77,6 +78,8 @@ class ChildMonitoringViewModel @Inject constructor(
         private const val MIN_VALID_WAV_BYTES = 44L
         private const val MONITOR_PREFS = "safeear_monitoring"
         private const val KEY_FOREGROUND_OWNER_ACTIVE = "foreground_owner_active"
+        private const val CONNECTIVITY_PREFS = "safeear_connectivity"
+        private const val KEY_IS_OFFLINE = "is_offline"
     }
 
     private val _uiState = MutableStateFlow(ChildMonitoringUiState())
@@ -96,6 +99,7 @@ class ChildMonitoringViewModel @Inject constructor(
         initialize()
         startDeviceTelemetryRefresh()
         startRemoteMonitoringSync()
+        deviceRepository.startDevicePolling()
     }
 
     fun initialize() {
@@ -343,8 +347,11 @@ class ChildMonitoringViewModel @Inject constructor(
         telemetryJob?.cancel()
         telemetryJob = viewModelScope.launch {
             while (true) {
+                val offline = appContext.getSharedPreferences(CONNECTIVITY_PREFS, Context.MODE_PRIVATE)
+                    .getBoolean(KEY_IS_OFFLINE, false)
                 _uiState.value = _uiState.value.copy(
-                    batteryPercent = readBatteryPercent()
+                    batteryPercent = readBatteryPercent(),
+                    isOffline = offline
                 )
                 delay(20_000L)
             }
@@ -364,20 +371,15 @@ class ChildMonitoringViewModel @Inject constructor(
     private suspend fun syncRemoteMonitoringState() {
         val deviceId = tokenManager.getDeviceId() ?: return
 
-        deviceRepository.listDevices().collect { result ->
-            if (result is DeviceResult.Success) {
-                val selfDevice = result.data.firstOrNull { it.id == deviceId }
-                    ?: result.data.firstOrNull { it.role == "child_device" }
-                    ?: return@collect
+        val selfDevice = deviceRepository.deviceCache.value.firstOrNull { it.id == deviceId }
+            ?: return
 
-                _uiState.value = _uiState.value.copy(
-                    remoteMonitoringEnabled = selfDevice.monitoringEnabled,
-                    batteryPercent = selfDevice.batteryPercent ?: _uiState.value.batteryPercent
-                )
+        _uiState.value = _uiState.value.copy(
+            remoteMonitoringEnabled = selfDevice.monitoringEnabled,
+            batteryPercent = selfDevice.batteryPercent ?: _uiState.value.batteryPercent
+        )
 
-                applyRemoteMonitoringState(selfDevice.monitoringEnabled)
-            }
-        }
+        applyRemoteMonitoringState(selfDevice.monitoringEnabled)
     }
 
     private fun applyRemoteMonitoringState(enabled: Boolean) {

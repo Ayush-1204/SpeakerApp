@@ -1,0 +1,136 @@
+SpeakerApp v2 - App Overview
+
+Purpose
+This is an Android app for domestic speaker monitoring with two modes:
+1. Child mode - the phone listens in the background, records audio chunks, sends them to the backend for stranger detection, and uploads location/telemetry.
+2. Parent mode - the phone shows a dashboard with monitored devices, alerts, familiar speakers, and alert playback.
+
+Core Architecture
+- Android app written in Kotlin using Jetpack Compose.
+- Uses Hilt for dependency injection.
+- Uses Retrofit/OkHttp for backend API calls.
+- Uses Firebase Cloud Messaging for push notifications.
+- Uses WorkManager for background alert refresh in parent mode.
+- Uses a foreground service for child monitoring so recording can continue while the app is backgrounded.
+- Uses ExoPlayer for alert audio playback.
+- Uses StateFlow / ViewModel / Repository pattern for state management.
+
+Main App Flows
+
+1. Authentication and role setup
+- User logs in through the auth flow.
+- Device role is stored locally in TokenManager.
+- Role values used by the app are:
+  - parent_device
+  - child_device
+- After login, the app routes to either parent dashboard / alerts / familiar speakers or child monitoring depending on the saved role.
+
+2. Child mode
+- In child mode, the app starts DetectionService as a foreground service.
+- The service continuously records short WAV chunks.
+- Each valid chunk is uploaded to the backend at /detect/chunk.
+- Location updates are also sent to the backend.
+- The backend returns detection results such as familiar, stranger_candidate, hold, or ok.
+- If the backend flags a stranger alert, the parent side receives the alert through push or background refresh.
+- Child mode should not receive stranger alert notifications; the app now blocks those locally.
+
+3. Parent mode
+- Parent mode shows DashboardScreen with monitored devices and recent detections.
+- Parent mode also has AlertsScreen for detailed alert browsing and playback.
+- Parent mode can flag alert audio as familiar, which updates the familiar speakers list.
+- Parent mode uses WorkManager to refresh alerts in the background even if the UI is not open.
+- Parent mode receives immediate push notifications through FCM when the app is not open.
+
+Key Screens
+- LoginScreen: authentication entry point.
+- DeviceRegistrationScreen: choose parent mode or child mode and register the device.
+- DashboardScreen: parent dashboard showing monitored devices and recent detections.
+- AlertsScreen: parent alert feed with playback, seek slider, delete, and flag-as-familiar actions.
+- SpeakerListScreen: familiar speaker list.
+- SpeakerEnrollmentScreen: enroll a familiar speaker from alert audio or audio sample.
+- ChildMonitoringScreen: child dashboard and controls for monitoring/recording.
+- SettingsScreen: mode switching, logout, and account/device info.
+
+Important Background Components
+
+1. DetectionService
+- Foreground service used only in child mode.
+- Keeps recording in the background.
+- Syncs monitoring state from backend every few seconds.
+- Stops itself if the saved role is not child_device or if the backend rejects chunk uploads with 403.
+- This is what allows child monitoring to continue while the app is backgrounded.
+
+2. AlertRefreshWorker
+- WorkManager job used only for parent mode.
+- Periodically fetches alerts from the backend.
+- Also runs an immediate refresh once when scheduled.
+- This is a fallback/background refresh path; it is not the main real-time path.
+
+3. SafeEarFirebaseMessagingService
+- FCM receiver for push notifications.
+- Shows high-priority stranger alerts.
+- Now gated so only parent_device shows these notifications.
+- If the app is closed normally, Android can still deliver pushes to this service.
+
+Realtime and Sync Behavior
+- RealtimeSocketManager connects to backend websocket events.
+- AlertsViewModel listens for alert_created / stranger_detected / alert.new events and updates the UI.
+- Device update events are merged into the monitored device list.
+- Realtime sockets use reconnect backoff and avoid parallel reconnect jobs.
+- The app no longer falls back to the first child device when syncing; it must match by persisted device_id.
+
+Data / Repository Layer
+
+Main repositories and responsibilities:
+- AuthRepository: login/logout/auth state.
+- DeviceRepository: register device, list devices, enable/disable monitoring.
+- DetectionRepository: upload chunks, send location, end detection sessions.
+- AlertsRepository: get alerts, acknowledge, delete, fetch clip, flag familiar.
+- EnrollmentRepository: enroll familiar speakers and maintain a shared speaker cache.
+
+Device Identity / Mode Switching
+- Device registration stores device_id and device_role locally in TokenManager.
+- The app tries to keep one active role context on the same phone.
+- When switching from child mode to parent mode, the app clears local device info and re-registers the device.
+- The parent dashboard filters stale same-installation child records so the same phone does not keep showing up incorrectly after mode switches.
+- On re-registration, the app tries to disable the previous child monitoring state if it existed.
+
+Notifications and Reliability
+- Child devices should not get Stranger Detected pushes.
+- Parent devices should receive alerts even when the UI is closed, as long as:
+  - the app is not force-stopped,
+  - notification permission is granted,
+  - backend sends pushes to the correct parent token,
+  - the FCM token stays updated on the backend.
+- WorkManager is best-effort and can be delayed by Android battery policies, so FCM is the preferred delivery path.
+
+Playback / Audio Handling
+- AlertsScreen plays alert clips using AudioPlayer.
+- AudioPlayer wraps ExoPlayer and exposes:
+  - isPlaying
+  - currentPosition
+  - duration
+  - isBuffering
+- The alert slider uses real clip duration and position.
+- Audio file writes are done off the main thread to avoid stutter.
+
+Theme / UI
+- The app is forced to light theme only.
+- Navigation uses fade transitions instead of slide transitions.
+- Some screens use responsive layouts for compact devices.
+
+Known Backend Dependencies / Caveats
+- onNewToken currently logs a TODO to update the backend with refreshed FCM token.
+- For reliable pushes, backend should update the device token whenever FCM rotates it.
+- Backend should send stranger alerts only to parent_device tokens.
+- Backend should ideally use stable device identity / upsert behavior so mode switches do not create inconsistent duplicate device rows.
+- Backend should reject /detect/chunk for parent devices and continue enforcing child-only access.
+
+Useful Implementation Notes
+- Child background recording is controlled from MainActivity by checking the saved device role.
+- Parent background refresh is started from MainActivity when the app launches.
+- Device role is central to app behavior; many flows depend on whether the role is parent_device or child_device.
+- SavedStateHandle is used in some flows to trigger refresh after returning from enrollment screens.
+
+Short Summary
+This app is a two-role monitoring system. Child devices record and upload audio in the background. Parent devices view dashboards, receive stranger alerts, and manage familiar speakers. The app uses foreground service, FCM, WorkManager, and realtime websocket updates to keep behavior active and responsive.

@@ -84,6 +84,20 @@ interface ApiService {
     ): Response<DeviceResponse>
 
     /**
+     * POST /devices/upsert
+     * Content-Type: multipart/form-data
+     * Uses stable installation identity to return the same logical device record.
+     */
+    @Multipart
+    @POST("devices/upsert")
+    suspend fun upsertDevice(
+        @Part("installation_id") installationId: RequestBody,
+        @Part("device_name") deviceName: RequestBody?,
+        @Part("role") role: RequestBody,
+        @Part("device_token") deviceToken: RequestBody?
+    ): Response<DeviceResponse>
+
+    /**
      * GET /devices
      * List devices for current parent account.
      */
@@ -98,6 +112,16 @@ interface ApiService {
     suspend fun setDeviceMonitoring(
         @Path("device_id") deviceId: String,
         @Body request: DeviceMonitoringUpdateRequest
+    ): Response<DeviceData>
+
+    /**
+     * PATCH /devices/{device_id}/token
+     * Updates the registered FCM token for a device.
+     */
+    @PATCH("devices/{device_id}/token")
+    suspend fun updateDeviceToken(
+        @Path("device_id") deviceId: String,
+        @Body request: UpdateDeviceTokenRequest
     ): Response<DeviceData>
 
     // ===== SPEAKER ENROLLMENT ENDPOINTS (Auth required) =====
@@ -165,6 +189,7 @@ interface ApiService {
     @POST("detect/chunk")
     suspend fun detectChunk(
         @Part("device_id") deviceId: RequestBody,
+        @Part("chunk_id") chunkId: RequestBody?,
         @Part("latitude") latitude: RequestBody?,
         @Part("longitude") longitude: RequestBody?,
         @Part("battery_percent") batteryPercent: RequestBody?,
@@ -198,6 +223,16 @@ interface ApiService {
      */
     @POST("alerts/{alert_id}/ack")
     suspend fun acknowledgeAlert(@Path("alert_id") alertId: String): Response<AckAlertResponse>
+
+    /**
+     * POST /alerts/{alert_id}/flag-familiar
+     * Flags an alert as familiar and returns updated familiar speakers list in items.
+     */
+    @POST("alerts/{alert_id}/flag-familiar")
+    suspend fun flagFamiliar(
+        @Path("alert_id") alertId: String,
+        @Body request: FlagFamiliarRequest
+    ): Response<FlagFamiliarResponse>
 
     /**
      * GET /alerts/{alert_id}/clip

@@ -27,7 +27,10 @@ data class EnrollSpeakerResponse(
     val display_name: String,
     val samples_saved: Int,
     val embedding_dim: Int,
-    val stages: EnrollmentStages
+    val stages: EnrollmentStages,
+    val quality_score: Float? = null,
+    val quality_label: String? = null,
+    val items: List<SpeakerInfo> = emptyList()
 )
 
 @Serializable
@@ -38,7 +41,9 @@ data class SpeakerInfo(
     val sample_count: Int,
     val profile_image_url: String? = null,
     val created_at: String,
-    val updated_at: String
+    val updated_at: String,
+    val quality_score: Float? = null,
+    val quality_label: String? = null
 )
 
 @Serializable

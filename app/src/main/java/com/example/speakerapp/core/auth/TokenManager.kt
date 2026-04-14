@@ -9,6 +9,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,6 +24,8 @@ class TokenManager @Inject constructor(@ApplicationContext private val context: 
         private val PARENT_ID_KEY = stringPreferencesKey("parent_id")
         private val DEVICE_ID_KEY = stringPreferencesKey("device_id")
         private val DEVICE_ROLE_KEY = stringPreferencesKey("device_role")
+        private val INSTALLATION_ID_KEY = stringPreferencesKey("installation_id")
+        private val FCM_TOKEN_KEY = stringPreferencesKey("fcm_token")
         private val TOKEN_EXPIRY_KEY = stringPreferencesKey("token_expiry")
     }
 
@@ -60,6 +63,29 @@ class TokenManager @Inject constructor(@ApplicationContext private val context: 
         }
     }
 
+    suspend fun clearDeviceInfo() {
+        context.tokenDataStore.edit { preferences ->
+            preferences.remove(DEVICE_ID_KEY)
+            preferences.remove(DEVICE_ROLE_KEY)
+        }
+    }
+
+    suspend fun saveFcmToken(fcmToken: String) {
+        context.tokenDataStore.edit { preferences ->
+            preferences[FCM_TOKEN_KEY] = fcmToken
+        }
+    }
+
+    suspend fun getFcmToken(): String? {
+        return context.tokenDataStore.data.first()[FCM_TOKEN_KEY]
+    }
+
+    suspend fun clearFcmToken() {
+        context.tokenDataStore.edit { preferences ->
+            preferences.remove(FCM_TOKEN_KEY)
+        }
+    }
+
     suspend fun getDeviceId(): String? {
         return context.tokenDataStore.data.first()[DEVICE_ID_KEY]
     }
@@ -68,8 +94,31 @@ class TokenManager @Inject constructor(@ApplicationContext private val context: 
         return context.tokenDataStore.data.first()[DEVICE_ROLE_KEY]
     }
 
+    suspend fun getInstallationId(): String? {
+        return context.tokenDataStore.data.first()[INSTALLATION_ID_KEY]
+    }
+
+    suspend fun getOrCreateInstallationId(): String {
+        val existing = getInstallationId()
+        if (!existing.isNullOrBlank()) {
+            return existing
+        }
+
+        val generated = UUID.randomUUID().toString()
+        context.tokenDataStore.edit { preferences ->
+            preferences[INSTALLATION_ID_KEY] = generated
+        }
+        return generated
+    }
+
     suspend fun clearAll() {
-        context.tokenDataStore.edit { it.clear() }
+        context.tokenDataStore.edit { preferences ->
+            val installationId = preferences[INSTALLATION_ID_KEY]
+            preferences.clear()
+            if (!installationId.isNullOrBlank()) {
+                preferences[INSTALLATION_ID_KEY] = installationId
+            }
+        }
     }
 
     suspend fun isLoggedIn(): Boolean {

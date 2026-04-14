@@ -1,7 +1,10 @@
 package com.example.speakerapp.features.alerts.workers
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.speakerapp.network.ApiService
@@ -115,6 +118,14 @@ class AlertRefreshWorker(context: Context, params: WorkerParameters) : Coroutine
     }
 
     private fun showAlertNotification(title: String, body: String) {
+        if (
+            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.w(TAG, "POST_NOTIFICATIONS not granted, skipping worker notification")
+            return
+        }
+
         val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) 
             as android.app.NotificationManager
         val channel = android.app.NotificationChannel(

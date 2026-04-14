@@ -40,3 +40,8 @@ data class DeviceListResponse(
 data class DeviceMonitoringUpdateRequest(
     val monitoring_enabled: Boolean
 )
+
+@Serializable
+data class UpdateDeviceTokenRequest(
+    val device_token: String
+)

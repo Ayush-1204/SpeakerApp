@@ -1,6 +1,8 @@
 package com.example.speakerapp.features.alerts.data
 
+import com.example.speakerapp.features.enrollment.data.SpeakerListItem
 import com.example.speakerapp.network.ApiService
+import com.example.speakerapp.network.dto.FlagFamiliarRequest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -119,6 +121,43 @@ class AlertsRepository @Inject constructor(
     }
 
     /**
+     * Flag alert as familiar.
+     * Exact endpoint: POST /alerts/{alert_id}/flag-familiar
+     */
+    fun flagAlertAsFamiliar(
+        alertId: String,
+        displayName: String
+    ): Flow<AlertResult<List<SpeakerListItem>>> = flow {
+        emit(AlertResult.Loading)
+        try {
+            val response = apiService.flagFamiliar(
+                alertId = alertId,
+                request = FlagFamiliarRequest(display_name = displayName)
+            )
+
+            if (response.isSuccessful) {
+                val body = response.body() ?: throw Exception("Empty response body")
+                val speakers = body.items.map { item ->
+                    SpeakerListItem(
+                        id = item.id,
+                        displayName = item.display_name,
+                        sampleCount = item.sample_count,
+                        profileImageUrl = item.profile_image_url,
+                        createdAt = item.created_at,
+                        updatedAt = item.updated_at
+                    )
+                }
+                emit(AlertResult.Success(speakers))
+            } else {
+                val errorDetail = response.errorBody()?.string() ?: "Failed to flag familiar"
+                emit(AlertResult.Error(message = errorDetail, code = response.code()))
+            }
+        } catch (e: Exception) {
+            emit(AlertResult.Error(message = e.message ?: "Network error"))
+        }
+    }
+
+    /**
      * Get alert audio clip.
      * Exact endpoint: GET /alerts/{alert_id}/clip
      * Returns audio/wav bytes
@@ -128,7 +167,17 @@ class AlertsRepository @Inject constructor(
         try {
             val response = apiService.getAlertClip(alertId = alertId)
 
-            if (response.isSuccessful) {
+            if (response.code() == 204) {
+                emit(AlertResult.Error(
+                    message = "no clip available for this alert",
+                    code = 204
+                ))
+            } else if (response.code() == 404) {
+                emit(AlertResult.Error(
+                    message = "clip missing/unavailable",
+                    code = 404
+                ))
+            } else if (response.isSuccessful) {
                 val body = response.body() ?: throw Exception("Empty response body")
                 val bytes = body.bytes()
                 emit(AlertResult.Success(bytes))

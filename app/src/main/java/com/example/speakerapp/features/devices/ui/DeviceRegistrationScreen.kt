@@ -4,26 +4,27 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ChildCare
 import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.core.animateFloatAsState
 
 @Composable
 fun DeviceRegistrationScreen(
     viewModel: DeviceRegistrationViewModel,
+    onLogout: () -> Unit = {},
     onRegistrationSuccess: (role: String) -> Unit
 ) {
     var selectedRole by remember { mutableStateOf<String?>(null) }
@@ -142,6 +143,27 @@ fun DeviceRegistrationScreen(
                 }
             }
         }
+
+        TextButton(
+            onClick = onLogout,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 8.dp),
+            enabled = !uiState.isLoading
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.Logout,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = Color(0xFF50686D)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "Log out",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color(0xFF50686D)
+            )
+        }
     }
 }
 
@@ -154,13 +176,14 @@ private fun ModeActionButton(
     enabled: Boolean,
     onClick: () -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (enabled) 1f else 0.7f,
+        label = "modeContentAlpha"
+    )
 
     Button(
         onClick = onClick,
         enabled = enabled,
-        interactionSource = interactionSource,
         colors = ButtonDefaults.buttonColors(
             containerColor = if (selected) {
                 MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
@@ -180,15 +203,12 @@ private fun ModeActionButton(
         modifier = Modifier
             .fillMaxWidth()
             .height(176.dp)
-            .graphicsLayer {
-                scaleX = if (isPressed) 0.985f else 1f
-                scaleY = if (isPressed) 0.985f else 1f
-            }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
+                .padding(horizontal = 8.dp, vertical = 8.dp)
+                .alpha(contentAlpha),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {

@@ -7,6 +7,7 @@ import com.example.speakerapp.network.dto.GoogleAuthRequest
 import com.example.speakerapp.network.dto.LoginEmailRequest
 import com.example.speakerapp.network.dto.LogoutRequest
 import com.example.speakerapp.network.dto.RegisterEmailRequest
+import com.example.speakerapp.network.dto.RefreshTokenRequest
 import com.example.speakerapp.network.dto.ResetPasswordRequest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -254,6 +255,36 @@ class AuthRepository @Inject constructor(
             emit(logoutError!!)
         } else {
             emit(AuthResult.Success(Unit))
+        }
+    }
+
+    suspend fun refreshToken(): Flow<AuthResult<Unit>> = flow {
+        emit(AuthResult.Loading)
+        try {
+            val refreshToken = tokenManager.getRefreshToken()
+            if (refreshToken.isNullOrBlank()) {
+                emit(AuthResult.Error("Refresh token unavailable", 401))
+                return@flow
+            }
+
+            val response = apiService.refreshToken(RefreshTokenRequest(refresh_token = refreshToken))
+            if (response.isSuccessful) {
+                val body = response.body() ?: throw IllegalStateException("Empty refresh response")
+                if (body.access_token.isBlank() || body.refresh_token.isBlank()) {
+                    throw IllegalStateException("Refresh response missing tokens")
+                }
+                tokenManager.saveTokens(
+                    accessToken = body.access_token,
+                    refreshToken = body.refresh_token,
+                    expiresInSeconds = body.expires_in
+                )
+                emit(AuthResult.Success(Unit))
+            } else {
+                val detail = response.errorBody()?.string() ?: "Refresh failed"
+                emit(AuthResult.Error(mapFriendlyError(response.code(), detail), response.code()))
+            }
+        } catch (e: Exception) {
+            emit(AuthResult.Error(e.message ?: "Refresh failed"))
         }
     }
 

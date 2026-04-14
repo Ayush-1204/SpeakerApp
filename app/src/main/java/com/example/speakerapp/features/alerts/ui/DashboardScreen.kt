@@ -2,6 +2,7 @@ package com.example.speakerapp.features.alerts.ui
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -81,16 +82,6 @@ fun DashboardScreen(
                             tint = Color(0xFF004650)
                         )
                     }
-                    AsyncImage(
-                        model = "https://lh3.googleusercontent.com/aida-public/AB6AXuDCscdmicKxDpweDIkFVGaXfSH86IoVsOqt3as_62So8LGYO1m3jYA8vcXNWeXzupXK66qnZUlDBSnKNhQGMGLpHf_nZybYB_O6MnjIKJ6CWRg-Amo_pm_qUaBhaRB2yZQKz__YuMJXuixLGoD9sBRsGi4lEImo8TNmz3HlQcHomI_SFw9SL1k5Pr4lBcGPEz3egXk_QvP4JwTzAC7iwGQoLbAOhm6K_matkJQ3mPFcO5odeGJPjJ9XawFq5rWScXYAH2iViIEBAeEJ",
-                        contentDescription = "Profile",
-                        modifier = Modifier
-                            .padding(end = 16.dp)
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFFF6FAFA).copy(alpha = 0.8f)
@@ -104,9 +95,30 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item { Spacer(modifier = Modifier.height(8.dp)) }
+
+            item {
+                Column(modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)) {
+                    Text(
+                        "CONTROL CENTER",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF4A6267),
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.5.sp
+                    )
+                    Text(
+                        "Dashboard",
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontSize = 45.sp,
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 1.sp
+                        ),
+                        color = Color(0xFF004650)
+                    )
+                }
+            }
 
             // Monitored Devices
             item {
@@ -173,9 +185,7 @@ fun DashboardScreen(
                 )
             }
 
-            val dashboardAlerts = uiState.alerts
-                .filterNot { dismissedDashboardAlertIds.contains(it.id) }
-                .take(3)
+            val dashboardAlerts = uiState.alerts.take(3)
 
             if (dashboardAlerts.isEmpty()) {
                 item {
@@ -187,14 +197,20 @@ fun DashboardScreen(
                 }
             } else {
                 items(dashboardAlerts, key = { it.id }) { alert ->
-                    DetectionCard(
-                        alert = alert,
-                        onDismiss = { dismissedDashboardAlertIds.add(alert.id) }
-                    )
+                    AnimatedVisibility(
+                        visible = !dismissedDashboardAlertIds.contains(alert.id),
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically() + slideOutVertically(targetOffsetY = { it / 2 })
+                    ) {
+                        DetectionCard(
+                            alert = alert,
+                            onDismiss = { dismissedDashboardAlertIds.add(alert.id) }
+                        )
+                    }
                 }
             }
 
-            item { Spacer(modifier = Modifier.height(32.dp)) }
+            item { Spacer(modifier = Modifier.height(100.dp)) }
         }
     }
 }

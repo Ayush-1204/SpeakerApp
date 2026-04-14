@@ -5,6 +5,7 @@ import com.example.speakerapp.core.auth.TokenManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +25,6 @@ import okhttp3.WebSocketListener
 import okhttp3.OkHttpClient
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.min
 
 @Singleton
 class RealtimeSocketManager @Inject constructor(
@@ -58,10 +58,14 @@ class RealtimeSocketManager @Inject constructor(
     @Volatile
     private var reconnectAttempt = 0
 
+    @Volatile
+    private var reconnectJob: Job? = null
+
     fun acquire() {
         synchronized(this) {
             refCount += 1
             shouldRun = true
+            reconnectJob?.cancel()
             if (refCount == 1) {
                 connectInternal()
             }
@@ -74,6 +78,8 @@ class RealtimeSocketManager @Inject constructor(
             if (refCount == 0) {
                 shouldRun = false
                 reconnectAttempt = 0
+                reconnectJob?.cancel()
+                reconnectJob = null
                 webSocket?.close(1000, "No active subscribers")
                 webSocket = null
                 _isConnected.value = false
@@ -83,6 +89,9 @@ class RealtimeSocketManager @Inject constructor(
 
     private fun connectInternal() {
         scope.launch {
+            if (!shouldRun) return@launch
+            if (webSocket != null && _isConnected.value) return@launch
+
             val token = tokenManager.getAccessToken()
             if (token.isNullOrBlank()) {
                 _isConnected.value = false
@@ -98,6 +107,8 @@ class RealtimeSocketManager @Inject constructor(
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     reconnectAttempt = 0
                     _isConnected.value = true
+                    reconnectJob?.cancel()
+                    reconnectJob = null
                 }
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
@@ -111,11 +122,13 @@ class RealtimeSocketManager @Inject constructor(
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     _isConnected.value = false
+                    this@RealtimeSocketManager.webSocket = null
                     scheduleReconnectIfNeeded()
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     _isConnected.value = false
+                    this@RealtimeSocketManager.webSocket = null
                     scheduleReconnectIfNeeded()
                 }
             })
@@ -124,9 +137,15 @@ class RealtimeSocketManager @Inject constructor(
 
     private fun scheduleReconnectIfNeeded() {
         if (!shouldRun) return
-        scope.launch {
+        if (reconnectJob?.isActive == true) return
+
+        reconnectJob = scope.launch {
             reconnectAttempt += 1
-            val backoffMs = min(30_000L, 1_000L * (1 shl reconnectAttempt.coerceAtMost(5)))
+            val backoffMs = when (reconnectAttempt) {
+                1 -> 1_000L
+                2 -> 2_000L
+                else -> 5_000L
+            }
             delay(backoffMs)
             if (shouldRun) {
                 connectInternal()
@@ -140,6 +159,10 @@ class RealtimeSocketManager @Inject constructor(
             val type = root["type"]?.jsonPrimitive?.content
                 ?: root["event"]?.jsonPrimitive?.content
                 ?: "unknown"
+
+            if (type.equals("ping", ignoreCase = true) || type.equals("pong", ignoreCase = true)) {
+                return
+            }
 
             val payload = root["payload"]?.jsonObject ?: root
             _events.tryEmit(RealtimeEvent(type = type, payload = payload))

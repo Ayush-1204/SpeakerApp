@@ -37,6 +37,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import com.example.speakerapp.core.auth.TokenManager
 import com.example.speakerapp.core.notifications.SafeEarFirebaseMessagingService
 import com.example.speakerapp.features.alerts.ui.AlertsScreen
@@ -52,6 +54,7 @@ import com.example.speakerapp.features.enrollment.ui.SpeakerEnrollmentViewModel
 import com.example.speakerapp.features.enrollment.ui.SpeakerListScreen
 import com.example.speakerapp.features.enrollment.ui.SpeakerListViewModel
 import com.example.speakerapp.features.settings.ui.SettingsScreen
+import com.example.speakerapp.features.settings.ui.setup.BatterySetupGuideScreen
 import com.example.speakerapp.navigation.Screen
 import com.example.speakerapp.service.DetectionService
 import com.example.speakerapp.ui.theme.AppTheme
@@ -80,7 +83,10 @@ class MainActivity : ComponentActivity() {
 fun MainContent(tokenManager: TokenManager) {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = hiltViewModel()
+    val alertsViewModel: AlertsViewModel = hiltViewModel()
+    val speakerListViewModel: SpeakerListViewModel = hiltViewModel()
     val authState by authViewModel.uiState.collectAsState()
+    val scope = rememberCoroutineScope()
     
     var deviceRole by remember { mutableStateOf<String?>(null) }
     
@@ -134,6 +140,31 @@ fun MainContent(tokenManager: TokenManager) {
         }
     }
 
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    LaunchedEffect(currentBackStackEntry?.destination?.route) {
+        delay(220)
+        when (currentBackStackEntry?.destination?.route) {
+            Screen.ParentDashboard.route, Screen.AlertsFeed.route -> {
+                alertsViewModel.loadAlerts(limit = 50, offset = 0)
+                alertsViewModel.loadDevices()
+            }
+            Screen.SpeakerList.route -> {
+                speakerListViewModel.loadSpeakers()
+            }
+            Screen.ChildMonitoring.route, Screen.BatterySetupGuide.route -> {
+                if (deviceRole != "child_device") {
+                    deviceRole = "child_device"
+                }
+            }
+            Screen.ParentDashboard.route, Screen.AlertsFeed.route -> {
+                if (deviceRole != "parent_device") {
+                    deviceRole = "parent_device"
+                }
+            }
+            else -> Unit
+        }
+    }
+
     if (!authState.isLoggedIn) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -172,7 +203,10 @@ fun MainContent(tokenManager: TokenManager) {
                 ) {
                     composable(Screen.DeviceRegistration.route) {
                         val viewModel: DeviceRegistrationViewModel = hiltViewModel()
-                        DeviceRegistrationScreen(viewModel) { role ->
+                        DeviceRegistrationScreen(
+                            viewModel = viewModel,
+                            onLogout = { authViewModel.logout() }
+                        ) { role ->
                             deviceRole = role
                             val startRoute = if (role == "parent_device") Screen.ParentDashboard.route else Screen.ChildMonitoring.route
                             navController.navigate(startRoute) {
@@ -182,9 +216,8 @@ fun MainContent(tokenManager: TokenManager) {
                     }
 
                     composable(Screen.ParentDashboard.route) {
-                        val viewModel: AlertsViewModel = hiltViewModel()
                         DashboardScreen(
-                            viewModel = viewModel,
+                            viewModel = alertsViewModel,
                             onViewAllAlerts = { navController.navigate(Screen.AlertsFeed.route) },
                             onNotificationClick = { navController.navigate(Screen.AlertsFeed.route) },
                             onOpenMonitor = { navController.navigate(Screen.ChildMonitoring.route) }
@@ -192,12 +225,11 @@ fun MainContent(tokenManager: TokenManager) {
                     }
 
                     composable(Screen.AlertsFeed.route) {
-                        val viewModel: AlertsViewModel = hiltViewModel()
                         AlertsScreen(
-                            viewModel = viewModel,
-                            onPlayClip = { alertId -> viewModel.playAlertClip(alertId) },
+                            viewModel = alertsViewModel,
+                            onPlayClip = { alertId -> alertsViewModel.playAlertClip(alertId) },
                             onFlagAsFamiliar = { alertId, displayName ->
-                                viewModel.flagAsFamiliar(alertId, displayName)
+                                alertsViewModel.flagAsFamiliar(alertId, displayName)
                             },
                             onShowMap = { lat, lng ->
                                 val geoIntent = Intent(Intent.ACTION_VIEW, "geo:$lat,$lng?q=$lat,$lng".toUri())
@@ -228,17 +260,28 @@ fun MainContent(tokenManager: TokenManager) {
                     }
 
                     composable(Screen.SpeakerList.route) {
-                        val viewModel: SpeakerListViewModel = hiltViewModel()
-                        SpeakerListScreen(viewModel) {
-                            navController.navigate(Screen.SpeakerEnrollment.route)
-                        }
+                        SpeakerListScreen(
+                            viewModel = speakerListViewModel,
+                            onEnrollNew = {
+                                navController.navigate(Screen.SpeakerEnrollment.route)
+                            },
+                            onImproveQuality = { speakerId ->
+                                navController.navigate("${Screen.SpeakerEnrollment.route}?preloadedSpeakerId=$speakerId")
+                            }
+                        )
                     }
 
-                    composable(Screen.SpeakerEnrollment.route) {
+                    composable(Screen.SpeakerEnrollment.route) { backStackEntry ->
                         val viewModel: SpeakerEnrollmentViewModel = hiltViewModel()
-                        SpeakerEnrollmentScreen(viewModel) {
-                            navController.popBackStack()
-                        }
+                        val preloadedSpeakerId = backStackEntry.arguments?.getString("preloadedSpeakerId")
+                        SpeakerEnrollmentScreen(
+                            viewModel = viewModel,
+                            preloadedSpeakerId = preloadedSpeakerId,
+                            onEnrollmentSuccess = {
+                                speakerListViewModel.loadSpeakers()
+                                navController.popBackStack()
+                            }
+                        )
                     }
 
                     composable(Screen.Settings.route) {
@@ -254,8 +297,37 @@ fun MainContent(tokenManager: TokenManager) {
                                     launchSingleTop = true
                                 }
                             },
+                            onOpenBatterySetup = {
+                                navController.navigate(Screen.BatterySetupGuide.createRoute("settings"))
+                            },
+                            onChangeMode = {
+                                scope.launch {
+                                    tokenManager.clearDeviceInfo()
+                                    deviceRole = null
+                                    navController.navigate(Screen.DeviceRegistration.route) {
+                                        popUpTo(navController.graph.id) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                }
+                            },
                             onLogout = {
                                 authViewModel.logout()
+                            }
+                        )
+                    }
+
+                    composable(Screen.BatterySetupGuide.route) { backStackEntry ->
+                        val source = backStackEntry.arguments?.getString("source") ?: "settings"
+                        BatterySetupGuideScreen(
+                            onBack = { navController.popBackStack() },
+                            onDone = {
+                                if (source == "settings") {
+                                    navController.popBackStack()
+                                } else {
+                                    navController.navigate(Screen.ChildMonitoring.route) {
+                                        popUpTo(Screen.BatterySetupGuide.route) { inclusive = true }
+                                    }
+                                }
                             }
                         )
                     }

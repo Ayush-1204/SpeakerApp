@@ -12,27 +12,62 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import dagger.hilt.android.EntryPointAccessors
 import com.example.speakerapp.MainActivity
 import com.example.speakerapp.R
+import com.example.speakerapp.core.auth.TokenManager
 import com.example.speakerapp.core.fcm.FCMDiagnostics
+import com.example.speakerapp.features.devices.data.DeviceResult
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class SafeEarFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        // Log token refresh for debugging
         Log.i(TAG, "FCM ONEW TOKEN EVENT ==================")
         Log.i(TAG, "Token: $token")
         Log.i(TAG, "Length: ${token.length}")
         Log.i(TAG, "Action: Send this token to backend as device_token")
         Log.i(TAG, "==========================================")
         
-        FCMDiagnostics.logTokenRefresh(token)
-        
-        // TODO: Send token to backend for update
-        // This would be a call to POST /devices/{deviceId}/token endpoint
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            try {
+                val entryPoint = EntryPointAccessors.fromApplication(
+                    applicationContext,
+                    FcmServiceEntryPoint::class.java
+                )
+                val tokenManager = entryPoint.tokenManager()
+                val deviceRepository = entryPoint.deviceRepository()
+                val deviceId = tokenManager.getDeviceId()
+
+                if (deviceId.isNullOrBlank()) {
+                    tokenManager.saveFcmToken(token)
+                    Log.i(TAG, "Saved FCM token locally; device not registered yet")
+                    return@launch
+                }
+
+                when (val result = deviceRepository.syncFcmTokenWithRetry(deviceId, token)) {
+                    is DeviceResult.Success<*> -> {
+                        tokenManager.saveFcmToken(token)
+                        Log.i(TAG, "FCM token rotated successfully")
+                    }
+                    is DeviceResult.Error -> {
+                        Log.e(TAG, "FCM token rotation failed: ${result.message}")
+                    }
+                    else -> Unit
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "FCM token rotation failed: ${e.message}", e)
+            } finally {
+                FCMDiagnostics.logTokenRefresh(token)
+            }
+        }
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
@@ -42,11 +77,27 @@ class SafeEarFirebaseMessagingService : FirebaseMessagingService() {
         Log.i(TAG, "MessageId: ${remoteMessage.messageId}")
         Log.i(TAG, "Sent time: ${remoteMessage.sentTime}")
         Log.i(TAG, "Data: ${remoteMessage.data}")
-        Log.i(TAG, "Notification: ${remoteMessage.notification?.let { 
-            "title=${it.title}, body=${it.body}" 
-        } ?: "None"}")
+        val incomingNotification = remoteMessage.notification
+        Log.i(
+            TAG,
+            "Notification: ${if (incomingNotification != null) "title=${incomingNotification.title}, body=${incomingNotification.body}" else "None"}"
+        )
         Log.i(TAG, "=========================================")
         
+        val localRole = runBlocking { TokenManager(applicationContext).getDeviceRole() }
+        if (localRole != "parent_device") {
+            Log.i(TAG, "Dropping FCM alert for non-parent role: $localRole")
+            return
+        }
+
+        val targetRole = remoteMessage.data["target_role"]
+            ?: remoteMessage.data["recipient_role"]
+            ?: remoteMessage.data["audience_role"]
+        if (!targetRole.isNullOrBlank() && targetRole != "parent_device") {
+            Log.i(TAG, "Dropping FCM alert targeted for role=$targetRole")
+            return
+        }
+
         val title = remoteMessage.notification?.title
             ?: remoteMessage.data["title"]
             ?: "SafeEar Alert"
