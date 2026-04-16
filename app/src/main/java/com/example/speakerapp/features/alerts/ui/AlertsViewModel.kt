@@ -65,6 +65,7 @@ class AlertsViewModel @Inject constructor(
     val uiState: StateFlow<AlertsUiState> = _uiState.asStateFlow()
     private var realtimeJob: Job? = null
     private var playbackJob: Job? = null
+    private var devicesJob: Job? = null
 
     init {
         loadAlerts()
@@ -112,30 +113,35 @@ class AlertsViewModel @Inject constructor(
     private fun startRealtimeUpdates() {
         realtimeJob?.cancel()
         realtimeJob = viewModelScope.launch {
-            realtimeSocketManager.events.collect { event ->
-                when (event.type.lowercase()) {
-                    "ping", "pong", "keepalive" -> Unit
-                    "alert_created", "stranger_detected", "alert.new" -> {
-                        event.payload.toAlertItemOrNull()?.let { incoming ->
-                            val current = _uiState.value.alerts
-                            val deduped = current.filterNot { it.id == incoming.id }
-                            _uiState.value = _uiState.value.copy(alerts = listOf(incoming) + deduped)
-                        }
-                    }
-                    "device_status_changed", "device_updated", "monitoring_changed", "device.monitoring" -> {
-                        event.payload.toMonitoredDeviceOrNull()?.let { incoming ->
-                            if (incoming.role != "child_device") return@let
-                            val current = _uiState.value.devices
-                            val exists = current.any { it.id == incoming.id }
-                            val updated = if (exists) {
-                                current.map { old -> if (old.id == incoming.id) old.merge(incoming) else old }
-                            } else {
-                                current + incoming
+            realtimeSocketManager.acquire()
+            try {
+                realtimeSocketManager.events.collect { event ->
+                    when (event.type.lowercase()) {
+                        "ping", "pong", "keepalive" -> Unit
+                        "alert_created", "stranger_detected", "alert.new" -> {
+                            event.payload.toAlertItemOrNull()?.let { incoming ->
+                                val current = _uiState.value.alerts
+                                val deduped = current.filterNot { it.id == incoming.id }
+                                _uiState.value = _uiState.value.copy(alerts = listOf(incoming) + deduped)
                             }
-                            _uiState.value = _uiState.value.copy(devices = updated)
+                        }
+                        "device_status_changed", "device_updated", "monitoring_changed", "device.monitoring" -> {
+                            event.payload.toMonitoredDeviceOrNull()?.let { incoming ->
+                                if (incoming.role != "child_device") return@let
+                                val current = _uiState.value.devices
+                                val exists = current.any { it.id == incoming.id }
+                                val updated = if (exists) {
+                                    current.map { old -> if (old.id == incoming.id) old.merge(incoming) else old }
+                                } else {
+                                    current + incoming
+                                }
+                                _uiState.value = _uiState.value.copy(devices = updated)
+                            }
                         }
                     }
                 }
+            } finally {
+                realtimeSocketManager.release()
             }
         }
     }
@@ -318,7 +324,8 @@ class AlertsViewModel @Inject constructor(
     }
 
     fun loadDevices() {
-        viewModelScope.launch {
+        devicesJob?.cancel()
+        devicesJob = viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoadingDevices = true)
             deviceRepository.deviceCache.collectLatest { devices ->
                 _uiState.value = _uiState.value.copy(
@@ -334,6 +341,7 @@ class AlertsViewModel @Inject constructor(
         deviceRepository.stopDevicePolling()
         realtimeJob?.cancel()
         playbackJob?.cancel()
+        devicesJob?.cancel()
         super.onCleared()
     }
 

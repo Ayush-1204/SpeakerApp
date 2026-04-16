@@ -25,6 +25,8 @@ class TokenManager @Inject constructor(@ApplicationContext private val context: 
         private val DEVICE_ID_KEY = stringPreferencesKey("device_id")
         private val DEVICE_ROLE_KEY = stringPreferencesKey("device_role")
         private val INSTALLATION_ID_KEY = stringPreferencesKey("installation_id")
+        private val INSTALLATION_ID_PARENT_KEY = stringPreferencesKey("installation_id_parent")
+        private val INSTALLATION_ID_CHILD_KEY = stringPreferencesKey("installation_id_child")
         private val FCM_TOKEN_KEY = stringPreferencesKey("fcm_token")
         private val TOKEN_EXPIRY_KEY = stringPreferencesKey("token_expiry")
     }
@@ -94,21 +96,36 @@ class TokenManager @Inject constructor(@ApplicationContext private val context: 
         return context.tokenDataStore.data.first()[DEVICE_ROLE_KEY]
     }
 
-    suspend fun getInstallationId(): String? {
-        return context.tokenDataStore.data.first()[INSTALLATION_ID_KEY]
+    suspend fun getInstallationId(role: String? = null): String? {
+        val preferences = context.tokenDataStore.data.first()
+        val key = installationKeyForRole(role)
+        return preferences[key] ?: preferences[INSTALLATION_ID_KEY]
     }
 
-    suspend fun getOrCreateInstallationId(): String {
-        val existing = getInstallationId()
+    suspend fun getOrCreateInstallationId(role: String? = null): String {
+        val key = installationKeyForRole(role)
+        val preferences = context.tokenDataStore.data.first()
+        val existing = preferences[key] ?: preferences[INSTALLATION_ID_KEY]
         if (!existing.isNullOrBlank()) {
             return existing
         }
 
         val generated = UUID.randomUUID().toString()
-        context.tokenDataStore.edit { preferences ->
-            preferences[INSTALLATION_ID_KEY] = generated
+        context.tokenDataStore.edit { editable ->
+            editable[key] = generated
+            if (editable[INSTALLATION_ID_KEY].isNullOrBlank()) {
+                editable[INSTALLATION_ID_KEY] = generated
+            }
         }
         return generated
+    }
+
+    private fun installationKeyForRole(role: String?): Preferences.Key<String> {
+        return when (role?.trim()?.lowercase()) {
+            "parent_device" -> INSTALLATION_ID_PARENT_KEY
+            "child_device" -> INSTALLATION_ID_CHILD_KEY
+            else -> INSTALLATION_ID_KEY
+        }
     }
 
     suspend fun clearAll() {

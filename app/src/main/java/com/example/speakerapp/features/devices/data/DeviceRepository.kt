@@ -57,7 +57,8 @@ class DeviceRepository @Inject constructor(
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _deviceCache = MutableStateFlow<List<MonitoredDevice>>(emptyList())
     val deviceCache: StateFlow<List<MonitoredDevice>> = _deviceCache.asStateFlow()
-    private var pollJob: Job? = null
+    private val pollingLock = Any()
+    @Volatile private var pollJob: Job? = null
     private var pollSubscribers = 0
 
     /**
@@ -89,7 +90,7 @@ class DeviceRepository @Inject constructor(
             val rolePart = normalizedRole.toTextBody()
             val resolvedDeviceToken = deviceToken?.takeIf { it.isNotBlank() } ?: tokenManager.getFcmToken()
             val deviceTokenPart = resolvedDeviceToken?.toTextBody()
-            val installationIdPart = tokenManager.getOrCreateInstallationId().toTextBody()
+            val installationIdPart = tokenManager.getOrCreateInstallationId(normalizedRole).toTextBody()
 
             val response = apiService.upsertDevice(
                 installationId = installationIdPart,
@@ -118,16 +119,16 @@ class DeviceRepository @Inject constructor(
                     }
                 }
 
-                // Ensure local app holds only one active role context at a time.
+                // Preserve the user's selected role locally even if backend returns a stale role.
                 tokenManager.clearDeviceInfo()
-                tokenManager.saveDeviceInfo(device.id, device.role)
+                tokenManager.saveDeviceInfo(device.id, normalizedRole)
 
                 emit(DeviceResult.Success(
                     RegisteredDevice(
                         id = device.id,
                         parentId = device.parent_id,
                         deviceName = device.device_name,
-                        role = device.role,
+                        role = normalizedRole,
                         deviceToken = device.device_token
                     )
                 ))
@@ -235,10 +236,11 @@ class DeviceRepository @Inject constructor(
             val stableDeviceName = buildStableDeviceName()
             val candidate = sourceItems.firstOrNull {
                 it.device_name == stableDeviceName && (currentRole == null || it.role == currentRole)
-            } ?: sourceItems.firstOrNull { it.device_name == stableDeviceName }
+            }
 
             candidate?.let {
-                tokenManager.saveDeviceInfo(it.id, it.role)
+                val resolvedRole = currentRole ?: it.role
+                tokenManager.saveDeviceInfo(it.id, resolvedRole)
                 it.id
             }
         } catch (_: Exception) {
@@ -262,36 +264,40 @@ class DeviceRepository @Inject constructor(
     suspend fun hasDeviceInfo(): Boolean = tokenManager.hasDeviceInfo()
 
     fun startDevicePolling(pollIntervalMs: Long = 15_000L) {
-        pollSubscribers += 1
-        if (pollJob?.isActive == true) {
-            return
-        }
+        synchronized(pollingLock) {
+            pollSubscribers += 1
+            if (pollJob?.isActive == true) {
+                return
+            }
 
-        pollJob = repositoryScope.launch {
-            while (isActive) {
-                try {
-                    val response = apiService.listDevices()
-                    if (response.isSuccessful) {
-                        val devices = response.body().toMonitoredDevices()
-                        _deviceCache.value = filterDevicesForCurrentRole(devices)
+            pollJob = repositoryScope.launch {
+                while (isActive) {
+                    try {
+                        val response = apiService.listDevices()
+                        if (response.isSuccessful) {
+                            val devices = response.body().toMonitoredDevices()
+                            _deviceCache.value = filterDevicesForCurrentRole(devices)
+                        }
+                    } catch (_: Exception) {
+                        // Keep the last known cache and retry on the next loop.
                     }
-                } catch (_: Exception) {
-                    // Keep the last known cache and retry on the next loop.
-                }
 
-                delay(pollIntervalMs)
+                    delay(pollIntervalMs)
+                }
             }
         }
     }
 
     fun stopDevicePolling() {
-        pollSubscribers = (pollSubscribers - 1).coerceAtLeast(0)
-        if (pollSubscribers > 0) {
-            return
-        }
+        synchronized(pollingLock) {
+            pollSubscribers = (pollSubscribers - 1).coerceAtLeast(0)
+            if (pollSubscribers > 0) {
+                return
+            }
 
-        pollJob?.cancel()
-        pollJob = null
+            pollJob?.cancel()
+            pollJob = null
+        }
     }
 
     suspend fun listDevices(): Flow<DeviceResult<List<MonitoredDevice>>> = flow {

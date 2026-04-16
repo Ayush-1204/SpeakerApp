@@ -442,6 +442,7 @@ class ChildMonitoringViewModel @Inject constructor(
         telemetryJob?.cancel()
         recordingJob?.cancel()
         stopLocationTracking()
+        deviceRepository.stopDevicePolling()
         audioRecorder.release()
     }
 }
